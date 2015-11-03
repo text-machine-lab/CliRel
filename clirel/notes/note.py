@@ -49,7 +49,6 @@ class Note:
 				self.lineInds.append((start, end))
 
 				self.data.append(tokenBreak(sentence))
-				print self.data[-1]
 
 		# read concept annotations
 		with open(con) as c:
@@ -76,7 +75,6 @@ class Note:
 				end = int(end[1])
 
 				self.concepts.append((concept, lineNo, start, end))
-				print self.concepts[-1]
 
 		# read relation annotations if they were provided
 		if rel:
@@ -106,12 +104,12 @@ class Note:
 					# extract line number
 					lineNo = int(firstText[-2].split(':')[0])
 
+					# TODO: ensure the offsets for concepts in a relation corespond to actual concept annotations
 					self.relations.append((relation, lineNo, firstStart, firstEnd, secondStart, secondEnd))
-					print self.relations[-1]
 
 
 
 	def write(self, labels=None):
 		#TODO: write relation data into a string formatted using the i2b2 format
 
-		i = 0
+		pass
