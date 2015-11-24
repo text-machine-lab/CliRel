@@ -1,20 +1,24 @@
-import os.path
-
 # CliRel: note.py:
 #	Internal data representation for a single document set (single text file and single set of annotation files)
 #
 # Connor Cooper
 
+import os.path
+
+from nltk import sent_tokenize, word_tokenize
+from utilities import getValidPairs, getPairLabels
 
 class Note:
 
-	def __init__(self):
+	def __init__(self, txt, con, rel = None):
 
 		self.data		= [] # list of tokens
 		self.concepts	= [] # list of concept tuples
 		self.relations	= [] # list of relation tuples
 
 		self.lineInds	= [] # list of line index tuples (start, end)
+
+		self.read(txt, con, rel)
 
 	def read(self, txt, con, rel = None):
 		'''
@@ -27,8 +31,8 @@ class Note:
 		'''
 
 		# break text by sentence or token
-		sentenceBreak = lambda text: text.split('\n')
-		tokenBreak = lambda text: text.split(' ')
+		sentenceBreak = sent_tokenize
+		tokenBreak = word_tokenize
 
 		# read medical record
 		with open(txt) as t:
@@ -105,6 +109,7 @@ class Note:
 					lineNo = int(firstText[-2].split(':')[0])
 
 					# TODO: ensure the offsets for concepts in a relation corespond to actual concept annotations
+					# TODO: support cross-sentence relations
 					self.relations.append((relation, lineNo, firstStart, firstEnd, secondStart, secondEnd))
 
 
@@ -113,3 +118,29 @@ class Note:
 		#TODO: write relation data into a string formatted using the i2b2 format
 
 		pass
+
+	def getRelationLabels(self):
+		'''
+		Note:getRelationLabels()
+			return a list of labels with one to one correspondence to the list of valid pairs returned by getValidPairs()
+		'''
+
+		# must have some relation data from annotations
+		assert self.relations != None
+
+		# get list of pairs to obtain labels for 
+		pairs = getValidPairs(self.concepts)
+
+		labels = getPairLabels(pairs, self.relations)
+
+		return labels
+
+if __name__ == "__main__":
+	print "nothing to do"
+
+	# t = Note("pretend.txt", "pretend.con", "pretend.rel")
+
+	# print t.data[0]
+	# print t.data
+	# print t.concepts
+	# print t.relations
