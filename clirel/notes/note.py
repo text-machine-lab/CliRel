@@ -30,8 +30,9 @@ class Note:
 		@param rel: file path for relations between concepts in given con file
 		'''
 
+		# TODO: convert from line number used in annoation to the actual sentence number obtained by the sent_tokenizer.
 		# break text by sentence or token
-		sentenceBreak = sent_tokenize
+		sentenceBreak = lambda text: text.split('\n')
 		tokenBreak = word_tokenize
 
 		# read medical record
@@ -115,9 +116,55 @@ class Note:
 
 
 	def write(self, labels=None):
-		#TODO: write relation data into a string formatted using the i2b2 format
+		'''
+		Note:write():
+			Write relation data to a .rel file
 
-		pass
+		@param labels: a list of relation classifications
+		'''
+		# TODO: Add support for cross sentence relations
+
+
+		# return value
+		retString = ''
+
+		if labels != None:
+			relations = labels
+		elif self.relations != None:
+			relations = self.relations
+		else:
+			raise Exception('Cannot write relation file without relation labels')
+
+		sentenceList = self.data
+
+		for relation in relations:
+
+			# ensure none relations are not being written
+			assert relation != 'none'
+
+			# data from relation tuple
+			label = relation[0]
+			lineNo = relation[1]
+			firstStart = relation[2]
+			firstEnd = relation[3]
+			secondStart = relation[4]
+			secondEnd = relation[5]
+
+			# sentence the concepts are in
+			sentence = sentenceList[lineNo - 1]
+
+			# concepts which are related
+			fisrtConcept = sentence[firstStart:firstEnd + 1]
+			secondConcept = sentence[secondStart:secondEnd + 1]
+
+			# annoation strings for the position of each offset
+			firstPosition = "%d:%d " % (lineNo, firstStart) + "%d:%d" % (lineNo, firstEnd)
+			secondPosition = "%d:%d " % (lineNo, secondStart) + "%d:%d" % (lineNo, secondEnd)
+
+			# add final annotation string for current relation to return string
+			retString += 'c="%s" %s||r="%s"||c="%s" %s\n' % (fisrtConcept, firstPosition, label, secondConcept, secondPosition)
+
+		return retString
 
 	def getRelationLabels(self):
 		'''
@@ -139,6 +186,8 @@ if __name__ == "__main__":
 	print "nothing to do"
 
 	# t = Note("pretend.txt", "pretend.con", "pretend.rel")
+
+	# print t.write()
 
 	# print t.data[0]
 	# print t.data
