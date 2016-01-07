@@ -1,28 +1,28 @@
 # CliRel: features.py
-#	Compute features to be used in training and predicting
+# Compute features to be used in training and predicting
 #
 # Connor Cooper
+# Renan Campos
 
-from notes.utilities import getValidPairs
+from nltk.tag import pos_tag
 
-def getFeatureDict(note):
-	'''
-	getFeatureDict()
-		Extract features for valid concept pairs in a given note. A concept pair is valid if it can map to 
-		a relation class.
 
-	@param note: a note object to get features from
-	@return: a list of feature dictionaries; one for every valid concept pair
-	'''
+# Enumeration of concepts
+CONCEPTS = { "problemproblem":0, 
+             "treatmenttreatment":1,
+             "testtest":2,
+             "problemtreatment":3,
+             "treatmentproblem":3,
+             "problemtest":4,
+             "testproblem":4,
+             "treatmenttest":5,
+             "testtreatment":5 } 
 
-	feats = []
+def get_features(pair, sentence):
+  """
+    Extract features for the given sentence and the concept pairs.
+  """
 
-	conPairs = getValidPairs(note.concepts)
-
-	for pair in conPairs:
-		#TODO: extract actual featues
-		featDict = {}
-		featDict["dummy"] = 1
-		feats.append(featDict)
-
-	return feats
+  print pair, ' '.join(sentence)
+  return {"pairs":CONCEPTS[pair[0][0]+pair[1][0]]}
+  

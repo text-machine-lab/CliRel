@@ -1,0 +1,9 @@
+#! /bin/bash
+#
+# Calls clirel from anywhere
+#
+
+CLIREL_DIR=$( dirname $0 )
+
+# Calls clirel
+python $CLIREL_DIR/../clirel/clirel.py $@

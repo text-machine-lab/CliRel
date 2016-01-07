@@ -4,7 +4,8 @@
 # Connor Cooper
 
 import ml.sci as sci
-from features.features import getFeatureDict
+
+from features.features import get_features
 
 class Model:
 
@@ -21,8 +22,8 @@ class Model:
 
         # extract features and get labels for each note
         for note in notes:
-            featVectors = featVectors + getFeatureDict(note)
-            labels = labels + note.getRelationLabels()
+            featVectors = featVectors + note.getFeatureDict(get_features)
+            labels      = labels + note.getRelationLabels()
 
         # train classifier and vectorizer
         clf, vec = sci.train(featVectors, labels)

@@ -1,5 +1,5 @@
 # CliRel: note.py:
-#	Internal data representation for a single document set (single text file and single set of annotation files)
+# Internal data representation for a single document set (single text file and single set of annotation files)
 #
 # Connor Cooper
 
@@ -8,188 +8,213 @@ import os.path
 from nltk import sent_tokenize, word_tokenize
 from utilities import getValidPairs, getPairLabels
 
+
 class Note:
+  
+  def __init__(self, txt, con, rel = None):
 
-	def __init__(self, txt, con, rel = None):
+    self.data   = {} # list of tokens, key is line number
+    self.concepts = [] # list of concept tuples
+    self.relations  = [] # list of relation tuples
 
-		self.data		= [] # list of tokens
-		self.concepts	= [] # list of concept tuples
-		self.relations	= [] # list of relation tuples
+    self.lineInds = [] # list of line index tuples (start, end)
 
-		self.lineInds	= [] # list of line index tuples (start, end)
+    self.read(txt, con, rel)
 
-		self.read(txt, con, rel)
+  def read(self, txt, con, rel = None):
+    '''
+    Note:read()
+      Read in data from document set
 
-	def read(self, txt, con, rel = None):
-		'''
-		Note:read()
-			Read in data from document set
+    @param txt: file path for medical record
+    @param con: file path for concept annotations for given txt file
+    @param rel: file path for relations between concepts in given con file
+    '''
 
-		@param txt: file path for medical record
-		@param con: file path for concept annotations for given txt file
-		@param rel: file path for relations between concepts in given con file
-		'''
+    # TODO: convert from line number used in annoation to the actual sentence number obtained by the sent_tokenizer.
+    # break text by sentence or token
+    sentenceBreak = lambda text: text.split('\n')
+    tokenBreak = word_tokenize
 
-		# TODO: convert from line number used in annoation to the actual sentence number obtained by the sent_tokenizer.
-		# break text by sentence or token
-		sentenceBreak = lambda text: text.split('\n')
-		tokenBreak = word_tokenize
+    # read concept annotations
+    with open(con) as c:
 
-		# read medical record
-		with open(txt) as t:
+      for line in c:
 
-			self.rawText = t.read()
+        # skip empty lines
+        if line == '\n':
+          continue
 
-			start = 0
+        # concept information
+        prefix, suffix = line.split('||')
+        text = prefix.split()
+        concept = suffix[3:-2]
 
-			sentences = sentenceBreak(self.rawText)
-			for sentence in sentences:
+        start = text[-2].split(':')
+        end = text[-1].split(':')
 
-				# get starting indice of sentence
-				start += self.rawText[start:].index(sentence)
+        # line number concept occurs on
+        lineNo = int(start[0])
 
-				# get ending indice
-				end = start + len(sentence)
+        # start and end indices
+        start = int(start[1])
+        end = int(end[1])
 
-				self.lineInds.append((start, end))
+        self.concepts.append((concept, lineNo, start, end))
 
-				self.data.append(tokenBreak(sentence))
+    # Sort the concepts by line number.
+    self.concepts.sort(cmp=(lambda x,y: 1 if x[1]>y[1] else (0 if x[1]==y[1] else -1)))
 
-		# read concept annotations
-		with open(con) as c:
+    # read medical record
+    # Only the sentences that contain concepts are needed for training/testing
+    with open(txt) as t:
+    
+      i = 0
+      largest=self.concepts[len(self.concepts)-1][1]
 
-			for line in c:
+      for lineNo, sentence in enumerate(t):
 
-				# skip empty lines
-				if line == '\n':
-					continue
+        if (lineNo+1 > largest):
+          break
 
-				# concept information
-				prefix, suffix = line.split('||')
-				text = prefix.split()
-				concept = suffix[3:-2]
+        # Check if Line has multiple concepts.
+        while (lineNo+1 > self.concepts[i][1]):
+          i += 1
 
-				start = text[-2].split(':')
-				end = text[-1].split(':')
+        # Line contains concept.
+        if (lineNo+1 == self.concepts[i][1]):
+          self.data[lineNo+1] = tokenBreak(sentence)
+    
+    # read relation annotations if they were provided
+    if rel:
 
-				# line number concept occurs on
-				lineNo = int(start[0])
+      with open(rel) as r:
 
-				# start and end indices
-				start = int(start[1])
-				end = int(end[1])
+        #TODO: parse rel file
+        for line in r:
 
-				self.concepts.append((concept, lineNo, start, end))
+          # skip empty lines
+          if line == '\n':
+            continue
 
-		# read relation annotations if they were provided
-		if rel:
+          # relation information
+          prefix, middle, suffix = line.split('||')
+          firstText   = prefix.split()
+          secondText  = suffix.split()
+          relation  = middle[3:-1]
 
-			with open(rel) as r:
+          # start and end indices of concpets
+          firstStart  = int(firstText[-2].split(':')[1])
+          firstEnd  = int(firstText[-1].split(':')[1])
 
-				#TODO: parse rel file
-				for line in r:
+          secondStart = int(secondText[-2].split(':')[1])
+          secondEnd = int(secondText[-1].split(':')[1])
 
-					# skip empty lines
-					if line == '\n':
-						continue
+          # extract line number
+          lineNo = int(firstText[-2].split(':')[0])
 
-					# relation information
-					prefix, middle, suffix = line.split('||')
-					firstText 	= prefix.split()
-					secondText 	= suffix.split()
-					relation 	= middle[3:-1]
-
-					# start and end indices of concpets
-					firstStart 	= int(firstText[-2].split(':')[1])
-					firstEnd 	= int(firstText[-1].split(':')[1])
-
-					secondStart	= int(secondText[-2].split(':')[1])
-					secondEnd	= int(secondText[-1].split(':')[1])
-
-					# extract line number
-					lineNo = int(firstText[-2].split(':')[0])
-
-					# TODO: ensure the offsets for concepts in a relation corespond to actual concept annotations
-					# TODO: support cross-sentence relations
-					self.relations.append((relation, lineNo, firstStart, firstEnd, secondStart, secondEnd))
-
-
-
-	def write(self, labels=None):
-		'''
-		Note:write():
-			Write relation data to a .rel file
-
-		@param labels: a list of relation classifications
-		'''
-		# TODO: Add support for cross sentence relations
+          # TODO: ensure the offsets for concepts in a relation corespond to actual concept annotations
+          # TODO: support cross-sentence relations
+          self.relations.append((relation, lineNo, firstStart, firstEnd, secondStart, secondEnd))
 
 
-		# return value
-		retString = ''
 
-		if labels != None:
-			relations = labels
-		elif self.relations != None:
-			relations = self.relations
-		else:
-			raise Exception('Cannot write relation file without relation labels')
+  def write(self, labels=None):
+    '''
+    Note:write():
+      Write relation data to a .rel file
 
-		sentenceList = self.data
+    @param labels: a list of relation classifications
+    '''
+    # TODO: Add support for cross sentence relations
 
-		for relation in relations:
 
-			# ensure none relations are not being written
-			assert relation != 'none'
+    # return value
+    retString = ''
 
-			# data from relation tuple
-			label = relation[0]
-			lineNo = relation[1]
-			firstStart = relation[2]
-			firstEnd = relation[3]
-			secondStart = relation[4]
-			secondEnd = relation[5]
+    if labels != None:
+      relations = labels
+    elif self.relations != None:
+      relations = self.relations
+    else:
+      raise Exception('Cannot write relation file without relation labels')
 
-			# sentence the concepts are in
-			sentence = sentenceList[lineNo - 1]
+    sentenceList = self.data
 
-			# concepts which are related
-			fisrtConcept = sentence[firstStart:firstEnd + 1]
-			secondConcept = sentence[secondStart:secondEnd + 1]
+    for relation in relations:
 
-			# annoation strings for the position of each offset
-			firstPosition = "%d:%d " % (lineNo, firstStart) + "%d:%d" % (lineNo, firstEnd)
-			secondPosition = "%d:%d " % (lineNo, secondStart) + "%d:%d" % (lineNo, secondEnd)
+      # ensure none relations are not being written
+      assert relation != 'none'
 
-			# add final annotation string for current relation to return string
-			retString += 'c="%s" %s||r="%s"||c="%s" %s\n' % (fisrtConcept, firstPosition, label, secondConcept, secondPosition)
+      # data from relation tuple
+      label = relation[0]
+      lineNo = relation[1]
+      firstStart = relation[2]
+      firstEnd = relation[3]
+      secondStart = relation[4]
+      secondEnd = relation[5]
 
-		return retString
+      # sentence the concepts are in
+      sentence = sentenceList[lineNo - 1]
 
-	def getRelationLabels(self):
-		'''
-		Note:getRelationLabels()
-			return a list of labels with one to one correspondence to the list of valid pairs returned by getValidPairs()
-		'''
+      # concepts which are related
+      fisrtConcept = sentence[firstStart:firstEnd + 1]
+      secondConcept = sentence[secondStart:secondEnd + 1]
 
-		# must have some relation data from annotations
-		assert self.relations != None
+      # annoation strings for the position of each offset
+      firstPosition = "%d:%d " % (lineNo, firstStart) + "%d:%d" % (lineNo, firstEnd)
+      secondPosition = "%d:%d " % (lineNo, secondStart) + "%d:%d" % (lineNo, secondEnd)
 
-		# get list of pairs to obtain labels for 
-		pairs = getValidPairs(self.concepts)
+      # add final annotation string for current relation to return string
+      retString += 'c="%s" %s||r="%s"||c="%s" %s\n' % (fisrtConcept, firstPosition, label, secondConcept, secondPosition)
 
-		labels = getPairLabels(pairs, self.relations)
+    return retString
 
-		return labels
+  def getRelationLabels(self):
+    '''
+    Note:getRelationLabels()
+      return a list of labels with one to one correspondence to the list of valid pairs returned by getValidPairs()
+    '''
+
+    # must have some relation data from annotations
+    assert self.relations != None
+
+    # get list of pairs to obtain labels for 
+    pairs = getValidPairs(self.concepts)
+
+    labels = getPairLabels(pairs, self.relations)
+
+    return labels
+
+  def getFeatureDict(self, extractor):
+    '''
+    getFeatureDict()
+      Extract features for valid concept pairs in a given note. A concept pair is valid if it can map to 
+      a relation class.
+
+    @param extractor: Function that takes concept pairs and the sentence, and
+                      returns a dictionary of features
+    @return: a list of feature dictionaries; one for every valid concept pair
+    '''
+
+    feats = []
+
+    conPairs = getValidPairs(self.concepts)
+
+    for pair in conPairs:
+      featDict = extractor(pair, self.data[pair[0][1]])
+      feats.append(featDict)
+
+    return feats
 
 if __name__ == "__main__":
-	print "nothing to do"
+  print "nothing to do"
 
-	# t = Note("pretend.txt", "pretend.con", "pretend.rel")
+  # t = Note("pretend.txt", "pretend.con", "pretend.rel")
 
-	# print t.write()
+  # print t.write()
 
-	# print t.data[0]
-	# print t.data
-	# print t.concepts
-	# print t.relations
+  # print t.data[0]
+  # print t.data
+  # print t.concepts
+  # print t.relations
