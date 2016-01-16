@@ -1,7 +1,15 @@
-# CliRel: sci.py
-#	sci-kit learn interface for training and predicting on classifiers
-#
-# Connor Cooper
+"""                                                                              
+ Text-Machine Lab: CliRel  
+
+ File Name : sci.py
+                                                                              
+ Creation Date : 12-01-2016
+                                                                              
+ Created By : Cooner Cooper                                             
+                                                                              
+ Purpose : sci-kit learn interface for training and predicting on classifiers
+
+"""
 
 from sklearn.svm import LinearSVC
 from sklearn.feature_extraction import DictVectorizer
@@ -29,8 +37,7 @@ def predict(clf, vec, featDicts):
 		use given classifier and vectorizer to obtain labels for given list of feature dictionaries
 	'''
 
-
 	#vectorize feature dictionaries
 	X = vec.transform(featDicts)
 
-	return list(clf.predict(X))
+	return clf.predict(X)

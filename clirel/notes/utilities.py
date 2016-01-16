@@ -1,8 +1,15 @@
-# CliRel: utilities.py
-#	various utility functions for data manipulation and formatting
-#
-# Connor Cooper
+"""                                                                              
+ Text-Machine Lab: CliRel  
 
+ File Name :                                                                  
+                                                                              
+ Creation Date : 12-01-2016
+                                                                              
+ Created By : Connor Cooper                                              
+                                                                              
+ Purpose : Various utilitiy functions for data manipulation adn formatting
+
+"""
 
 def getValidPairs(concepts):
 	'''

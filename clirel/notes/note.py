@@ -1,24 +1,144 @@
-# CliRel: note.py:
-# Internal data representation for a single document set (single text file and single set of annotation files)
-#
-# Connor Cooper
+"""                                                                              
+ Text-Machine Lab: CliRel  
 
+ File Name : note.py
+                                                                              
+ Creation Date : 15-01-2016
+                                                                              
+ Created By : Connor Cooper
+              Renan Campos
+                                                                              
+ Purpose :  Internal data representation for a single document set 
+            (single text file and single set of annotation files)
+            A note is a set of entries and the base name of the file
+            An Entry is a sentence and the potential relation in that sentence
+            A Relation is an ordered pair of concepts and a label between them
+            A Concept consists of the words it comprises, its label, line number
+            and word indices
+"""
 import os.path
 
 from nltk import sent_tokenize, word_tokenize
 from utilities import getValidPairs, getPairLabels
+
+class Concept:
+
+  def __init__(self, concept=None, label=None, lineNo=None, start=None, end=None, string=None):
+
+    if string:
+      # concept information
+      prefix, suffix = string.split('||')
+      
+      # Label without quotes
+      self.label = suffix[3:-2]
+
+      text  = prefix.split()
+
+      start = text[-2].split(':')
+      end   = text[-1].split(':')
+
+      # Concept text without quotes
+      self.concept = " ".join(text[:-2])[3:-1]
+
+      # line number concept occurs on
+      self.lineNo = int(start[0])
+
+      # start and end indices
+      self.start = int(start[1])
+      self.end   = int(end[1])
+
+    else:
+      self.concept = concept
+      self.label   = label
+      self.lineNo  = lineNo
+      self.start   = start
+      self.end     = end
+    
+
+  def __repr__(self):
+    return "c=\"%s\" %d:%d %d:%d||t=\"%s\"" % ( self.concept,
+                                                self.lineNo,
+                                                self.start,
+                                                self.lineNo,
+                                                self.end,
+                                                self.label)
+ 
+class Relation:
+
+  def __init__(self, con1=None, con2=None, string=None):
+    if string:
+      # relation information
+      prefix, middle, suffix = string.split('||')
+
+      firstText   = prefix.split()
+      secondText  = suffix.split()
+      relation    = middle[3:-1]
+
+      # start and end indices of concpets
+      firstconcept = " ".join(firstText[:-2])[3:-1]
+      firstStart   = int(firstText[-2].split(':')[1])
+      firstEnd     = int(firstText[-1].split(':')[1])
+
+      secondconcept = " ".join(secondText[:-2])[3:-1]
+      secondStart   = int(secondText[-2].split(':')[1])
+      secondEnd     = int(secondText[-1].split(':')[1])
+
+      # extract line number
+      lineNo = int(firstText[-2].split(':')[0])
+
+      self.label = relation
+      self.con1  = Concept(firstconcept,  None, lineNo,  firstStart,  firstEnd)
+      self.con2  = Concept(secondconcept, None, lineNo, secondStart, secondEnd)
+
+    else:
+      assert con1.lineNo == con2.lineNo
+    
+      self.label = None
+      self.con1  = con1
+      self.con2  = con2
+
+  def __eq__(self, other):
+    return self.__hash__() == other.__hash__()
+
+  def __repr__(self):
+    return "%s||r=\"%s\"||%s" % ( str(self.con1).split("||")[0],
+                                  self.label,
+                                  str(self.con2).split("||")[0])
+    
+
+  def __hash__(self):
+    return hash("%d%d%d%d%d" % ( self.con1.lineNo,
+                                 self.con1.start,
+                                 self.con1.end,
+                                 self.con2.start,
+                                 self.con2.end ))
+
+  def getConcepts(self):
+    return self.con1, self.con2
+
+
+class Entry:
+
+  def __init__(self, relation, sentence):
+    self.relation = relation
+    self.sentence = sentence
+
+  def validateRelation(self, relations):
+    try:
+      self.relation.label = relations[self.relation]
+    except:
+      self.relation.label = 'O'
+
+  def getConcepts(self):
+    return self.relation.getConcepts()
 
 
 class Note:
   
   def __init__(self, txt, con, rel = None):
 
-    self.data   = {} # list of tokens, key is line number
-    self.concepts = [] # list of concept tuples
-    self.relations  = [] # list of relation tuples
-
-    self.lineInds = [] # list of line index tuples (start, end)
-
+    self.docName = os.path.splitext(os.path.basename(txt))[0] 
+    self.data = set() # A set of entries
     self.read(txt, con, rel)
 
   def read(self, txt, con, rel = None):
@@ -31,6 +151,7 @@ class Note:
     @param rel: file path for relations between concepts in given con file
     '''
 
+
     # TODO: convert from line number used in annoation to the actual sentence number obtained by the sent_tokenizer.
     # break text by sentence or token
     sentenceBreak = lambda text: text.split('\n')
@@ -38,6 +159,7 @@ class Note:
 
     # read concept annotations
     with open(con) as c:
+      concepts  = dict()
 
       for line in c:
 
@@ -45,176 +167,53 @@ class Note:
         if line == '\n':
           continue
 
-        # concept information
-        prefix, suffix = line.split('||')
-        text = prefix.split()
-        concept = suffix[3:-2]
+        concept = Concept(string=line)
 
-        start = text[-2].split(':')
-        end = text[-1].split(':')
-
-        # line number concept occurs on
-        lineNo = int(start[0])
-
-        # start and end indices
-        start = int(start[1])
-        end = int(end[1])
-
-        self.concepts.append((concept, lineNo, start, end))
-
-    # Sort the concepts by line number.
-    self.concepts.sort(cmp=(lambda x,y: 1 if x[1]>y[1] else (0 if x[1]==y[1] else -1)))
+        try:
+          concepts[concept.lineNo].add(concept)
+        except:
+          concepts[concept.lineNo] = set()
+          concepts[concept.lineNo].add(concept)
 
     # read medical record
     # Only the sentences that contain concepts are needed for training/testing
     with open(txt) as t:
     
-      i = 0
-      largest=self.concepts[len(self.concepts)-1][1]
-
       for lineNo, sentence in enumerate(t):
-
-        if (lineNo+1 > largest):
-          break
-
-        # Check if Line has multiple concepts.
-        while (lineNo+1 > self.concepts[i][1]):
-          i += 1
-
-        # Line contains concept.
-        if (lineNo+1 == self.concepts[i][1]):
-          self.data[lineNo+1] = tokenBreak(sentence)
-    
+        try:
+          for concept1 in concepts[lineNo]:
+            for concept2 in concepts[lineNo]:
+              if concept1 != concept2:
+                self.data.add(Entry(Relation(con1=concept1, con2=concept2), sentence))
+        except:
+          continue
+              
     # read relation annotations if they were provided
     if rel:
 
       with open(rel) as r:
+        
+        relations = dict()
 
-        #TODO: parse rel file
         for line in r:
-
+          
           # skip empty lines
           if line == '\n':
             continue
+          
+          relation = Relation(string=line)
 
-          # relation information
-          prefix, middle, suffix = line.split('||')
-          firstText   = prefix.split()
-          secondText  = suffix.split()
-          relation  = middle[3:-1]
+          relations[relation] = relation.label
 
-          # start and end indices of concpets
-          firstStart  = int(firstText[-2].split(':')[1])
-          firstEnd  = int(firstText[-1].split(':')[1])
-
-          secondStart = int(secondText[-2].split(':')[1])
-          secondEnd = int(secondText[-1].split(':')[1])
-
-          # extract line number
-          lineNo = int(firstText[-2].split(':')[0])
-
-          # TODO: ensure the offsets for concepts in a relation corespond to actual concept annotations
-          # TODO: support cross-sentence relations
-          self.relations.append((relation, lineNo, firstStart, firstEnd, secondStart, secondEnd))
+      # Assign label to each entry that contains a valid relation
+      for entry in self.data:
+        entry.validateRelation(relations)
 
 
+  def write(self, outDir):
+    outPath = os.path.join(outDir, self.docName + ".rel")
 
-  def write(self, labels=None):
-    '''
-    Note:write():
-      Write relation data to a .rel file
+    with open(outPath, 'w') as f:
+      for entry in self.data:
+        print >>f, entry.relation
 
-    @param labels: a list of relation classifications
-    '''
-    # TODO: Add support for cross sentence relations
-
-
-    # return value
-    retString = ''
-
-    if labels != None:
-      relations = labels
-    elif self.relations != None:
-      relations = self.relations
-    else:
-      raise Exception('Cannot write relation file without relation labels')
-
-    sentenceList = self.data
-
-    for relation in relations:
-
-      # ensure none relations are not being written
-      assert relation != 'none'
-
-      # data from relation tuple
-      label = relation[0]
-      lineNo = relation[1]
-      firstStart = relation[2]
-      firstEnd = relation[3]
-      secondStart = relation[4]
-      secondEnd = relation[5]
-
-      # sentence the concepts are in
-      sentence = sentenceList[lineNo - 1]
-
-      # concepts which are related
-      fisrtConcept = sentence[firstStart:firstEnd + 1]
-      secondConcept = sentence[secondStart:secondEnd + 1]
-
-      # annoation strings for the position of each offset
-      firstPosition = "%d:%d " % (lineNo, firstStart) + "%d:%d" % (lineNo, firstEnd)
-      secondPosition = "%d:%d " % (lineNo, secondStart) + "%d:%d" % (lineNo, secondEnd)
-
-      # add final annotation string for current relation to return string
-      retString += 'c="%s" %s||r="%s"||c="%s" %s\n' % (fisrtConcept, firstPosition, label, secondConcept, secondPosition)
-
-    return retString
-
-  def getRelationLabels(self):
-    '''
-    Note:getRelationLabels()
-      return a list of labels with one to one correspondence to the list of valid pairs returned by getValidPairs()
-    '''
-
-    # must have some relation data from annotations
-    assert self.relations != None
-
-    # get list of pairs to obtain labels for 
-    pairs = getValidPairs(self.concepts)
-
-    labels = getPairLabels(pairs, self.relations)
-
-    return labels
-
-  def getFeatureDict(self, extractor):
-    '''
-    getFeatureDict()
-      Extract features for valid concept pairs in a given note. A concept pair is valid if it can map to 
-      a relation class.
-
-    @param extractor: Function that takes concept pairs and the sentence, and
-                      returns a dictionary of features
-    @return: a list of feature dictionaries; one for every valid concept pair
-    '''
-
-    feats = []
-
-    conPairs = getValidPairs(self.concepts)
-
-    for pair in conPairs:
-      featDict = extractor(pair, self.data[pair[0][1]])
-      feats.append(featDict)
-
-    return feats
-
-if __name__ == "__main__":
-  print "nothing to do"
-
-  # t = Note("pretend.txt", "pretend.con", "pretend.rel")
-
-  # print t.write()
-
-  # print t.data[0]
-  # print t.data
-  # print t.concepts
-  # print t.relations

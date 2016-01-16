@@ -1,47 +1,77 @@
-# CliRel: model.py
-#    model object for predicting relations
-#
-# Connor Cooper
+"""                                                                              
+ Text-Machine Lab: CliRel  
+
+ File Name : model.py
+                                                                              
+ Creation Date : 12-01-2016
+                                                                              
+ Created By : Connor Cooper
+              Renan Campos
+                                                                              
+ Purpose : Model object for predicting relations
+
+"""
 
 import ml.sci as sci
 
-from features.features import get_features
+from features.features import featureDict
 
 class Model:
 
-    def train(self, notes):
-        '''
-        Model:train()
-            train a model for predicting relations between concepts based on given training data
+  def train(self, notes):
+    '''
+    Model:train()
+        train a model for predicting relations between concepts 
+        based on given training data
 
-        @param notes: a list of notes with relation annotation data to train the model with
-        '''
+        The notes will be split into three groups (problem-problem,
+        treatment-problem, test-problem), and a classifier will be trained
+        for each type. 
 
-        featVectors = []
-        labels = []
+    @param notes: a list of notes with relation annotation data 
+                  to train the model with
+    '''
 
-        # extract features and get labels for each note
-        for note in notes:
-            featVectors = featVectors + note.getFeatureDict(get_features)
-            labels      = labels + note.getRelationLabels()
+    # Dictionaries with the keys being the concept pair type. 
+    featDicts = list()
+    labels    = list()
 
-        # train classifier and vectorizer
-        clf, vec = sci.train(featVectors, labels)
+    # extract features and get labels for each note
+    for note in notes:
+      for entry in note.data:
+        featDicts.append(getFeatureDict(entry))
+        labels.append(getRelationLabel(entry))
 
-        # memoize classifier and vectorizer
-        self.clf = clf
-        self.vec = vec
+    # train classifier and vectorizer
+    clf, vec = sci.train(featDicts, labels)
 
-    def predict(self, note):
+    # memoize classifier and vectorizer
+    self.clf = clf
+    self.vec = vec
 
-        # extract features
-        featDicts = getFeatureDict(note)
+  def predict(self, notes):
 
-        featVecs = vec.transform(featDicts)
-        labels = clf.predict(featVecs)
+    # extract features
+    for note in notes:
+      for entry in note.data:
+        featDict = getFeatureDict(entry)
 
-        return labels
+        entry.relation.label = sci.predict(self.clf, self.vec, featDict)[0]
 
-if __name__ == "__main__":
-    print "nothing to do"
+def getFeatureDict(entry):
+  """
+    Calls the feature functions to process the entry,
+    Returns a dictionary of features
+  """
+  features = dict()
 
+  for feature in featureDict:
+    features[feature] = featureDict[feature](entry)
+  return features
+    
+
+def getRelationLabel(entry):
+  """
+    Returns the entry's relation label
+  """
+  return entry.relation.label

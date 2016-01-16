@@ -1,13 +1,11 @@
 """                                                                              
- Copyright Renan Campos 2015                                                  
-                                                                              
+ Text-Machine Lab: CliRel  
+
  File Name : clirel.py
                                                                               
- Creation Date : 29-12-2015
+ Creation Date : 12-01-2016
                                                                               
- Last Modified : Tue 05 Jan 2016 05:28:34 PM EST
-                                                                              
- Created By : Renan Campos                                                    
+ Created By : Renan Campos                                              
                                                                               
  Purpose : Trains/Tests a classifier on given data to identify Clinical
            relations.
@@ -26,96 +24,7 @@ import cPickle
 from notes.note import Note
 from model import Model
 
-# The text, concepts and relations are subdirs listed as:
-# txt, con, rel.
-#DATA_DIR = "/data1/nlp-data/cliner_data/train_partners/"
-DATA_DIR = "../data/" 
-
-def check_dir(t_dir):
-  """ Redundant function, just wrote for memory"""
-  if not os.path.isdir(t_dir):
-    sys.stderr.write("(ERROR): %s is not a valid directory\n" % t_dir)
-    return False
-  return True
-
-def filter_files(dir, extension):
-  """ Only list files with the specified extension """
-  files = list()
-  for file in os.listdir(dir):
-    if file.endswith(extension):
-      files.append(os.path.join(dir, file))
-
-  files.sort()
-
-  return files
-
-def extract_files(t_dir, test=None):
-  """ 
-    Returns a list of tuples (text_file, concept_file, relation_file) in
-    from the txt, concept, rel of the training directory
-    Expects matching text and concept file, but relation file is not necassary
-    (wouldn't be included in testing)
-  """
-
-  txt_path = os.path.join(t_dir, "txt") 
-  con_path = os.path.join(t_dir, "concept") 
-  rel_path = os.path.join(t_dir, "rel") 
-
-  # If the main, txt or con don't exist. Or if it is not a test and rel doesn't
-  if not check_dir(t_dir)    \
-  or not check_dir(txt_path) \
-  or not check_dir(con_path) \
-  or not test and not check_dir(rel_path):
-    return None
-
-  # This creates a list of files that will be used.
-  dirs = [filter_files(txt_path, "txt"), filter_files(con_path, "con")]
-
-  if (len(dirs[0]) != len(dirs[1])):
-    sys.stderr.write("ERROR: Number of text and concept files do not match.\n")
-    sys.exit(1)
-
-  if not test:
-    dirs.append(filter_files(rel_path, "rel"))
-    if (len(dirs[0]) != len(dirs[2])):
-      sys.stderr.write("ERROR: Number of text and relation files do not match.\n")
-      sys.exit(1)
-
-  # Zip iterates through multiple objects at the same time, returning tuples
-  # This function assumes there are matches for all files and all dirs have the
-  # same number of files.
-  return zip(*dirs)
-
-def train(t_dir, model_path, v):
-  """
-     Extract files from the training directory and make a note instance for each
-     Train a model the given notes. 
-  """
-  
-  notes = list()
-
-  if (v):
-    sys.stdout.write("Extracting files from %s\n" % t_dir)
-
-  files = extract_files(t_dir)
-
-  if (files == None):
-    sys.stderr.write("Error parsing files\n")
-    sys.exit(1)
-
-  for file in files:
-    notes.append(Note(*file))
-
-  if (v):
-    sys.stdout.write("%d notes created\n" % len(notes))
-
-
-  model = Model()
-  model.train(notes)
-
-  with open(model_path, "wb") as mod_file:
-    cPickle.dump(model, mod_file)
-
+from file_utils import extract_files, checkDir, checkFile
 
 def main():
 
@@ -125,39 +34,124 @@ def main():
                                     two medical concepts in a sentence.")
 
   # Add arguments here
-  parser.add_argument("--train_dir", type=str,
+  parser.add_argument("--train", nargs=2, 
+                      metavar=("train_dir", "model_file"), type=str, 
                       help="Directory should contain three subdirs (txt, \
-                      concept, rel) containing .txt, .con, .rel files. \
-                      Will train a classifier on this data.",
+                            concept, rel) containing .txt, .con, .rel files. \
+                            Will train a classifier on this data. \
+                            Trained model will be written to specified model file.",
                       default=None)
-  parser.add_argument("--test_dir", type=str,
+  parser.add_argument("--test", nargs=3, 
+                      metavar=("test_dir", "model_file", "results_dir"), type=str,
                       help="Directory contains concept and text files \
-                      that the specified (or default) model will test on.",
+                            that the specified (or default) model will test \
+                            on. Resulting relation files will be written to \
+                            the specified results directory.",
                       default=None)
-  parser.add_argument("--model", type=str,
-                      help="Specify the path to the model that will either \
-                      trained, or will be used to classify the test set. \
-                      Default model = model/clirel.model",
-                      default="model/clirel.model")
+  parser.add_argument("--evaluate", nargs=3,
+                      metavar=("test_dir", "gold_dir", "eval_file"), type=str,
+                      help="Evaluate the relation files in the test directory \
+                      in comparison with those in the gold directory. The \
+                      results will be written to the evaluation file.", 
+                      default=None)
   parser.add_argument("--verbose", action="store_true",
                       default=False, help="Show debugging info.")
-
   # Begin error-checking command args
   args = parser.parse_args()
 
-  if args.train_dir:
-    train(args.train_dir, args.model, args.verbose)
-
-  if args.test_dir:
-    if not os.path.isfile(args.model):
-      sys.stderr.write("ERROR: No valid model specified\n")
-      sys.exit(1)
-
-  if not args.train_dir and not args.test_dir:
-    sys.stderr.write("ERROR: No training dir or test dir specified\n")
+  if not args.test and not args.train and not args.evaluate:
+    sys.stderr.write("ERROR: No valid flag specified.\n")
     parser.print_help()
     sys.exit(1)
-    
-    
+
+  if args.train:
+    checkDir(args.train[0])
+    checkDir(os.path.dirname(args.train[1]))
+    if (os.path.isdir(args.train[1])):
+      sys.stderr.write("ERROR: Model expected to be file, %s is a directory\n"
+                 % args.train[1])
+      sys.exit(1)
+
+    train(args.train[0], args.train[1], args.verbose)
+
+  if args.test:
+    checkDir(args.test[0])
+    checkFile(args.test[1])
+    checkDir(args.test[2])
+    test(args.test[0], args.test[1], args.test[2], args.verbose)
+
+def train(t_dir, model_path, v):
+  """
+     Extract files from the training directory and make a note instance for each
+     Train a model the given notes. 
+  """
+ 
+  # Create notes
+  if (v):
+    sys.stdout.write("Begin Training\n\tCreating notes...\n")
+  notes = makeNotes(t_dir, v, True)
+
+  # Create Model
+  if (v):
+    sys.stdout.write("\tCreating model...\n")
+  model = Model()
+  model.train(notes)
+
+  # Pickle model for later use
+  if (v):
+    sys.stdout.write("\tPickling model to %s...\n" % model_path)
+  with open(model_path, "wb") as mod_file:
+    cPickle.dump(model, mod_file)
+
+def test(t_dir, model_path, res_dir, v):
+  """
+    Extract files from the test directory and make a note instance for each
+    Predict a label for each entry in the given notes
+  """
+
+  # Create notes
+  if (v):
+    sys.stdout.write("Begin testing\n\tCreating notes...\n")
+  notes = makeNotes(t_dir, v)
+
+  # Load model
+  if (v):
+    sys.stdout.write("\tLoading model from %s...\n" % model_path)
+  with open(model_path, "rb") as mod_file:
+    model = cPickle.load(mod_file)
+  
+  if (v):
+    sys.stdout.write("\tPredicting labels...\n")
+  model.predict(notes)
+
+  if (v):
+    sys.stdout.write("\tWriting relation files in %s directory...\n" % res_dir)
+  for note in notes:
+    note.write(res_dir)
+
+def makeNotes(dir, v, train=False):
+  """
+    Returns a list of notes
+  """
+  notes = list()
+
+  if (v):
+    sys.stdout.write("\t\tExtracting files from %s\n" % dir)
+
+  files = extract_files(dir, train)
+
+  if (files == None):
+    sys.stderr.write("Error parsing files\n")
+    sys.exit(1)
+
+  for file in files:
+    notes.append(Note(*file))
+
+  if (v):
+    sys.stdout.write("\t\t%d notes created\n" % len(notes))
+
+  return notes
+
+
 if __name__ == '__main__':
   main()
