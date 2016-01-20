@@ -21,6 +21,10 @@ import os.path
 from nltk import sent_tokenize, word_tokenize
 from utilities import getValidPairs, getPairLabels
 
+Sentences = dict()
+
+#TODO Add support for cross-sentence relations
+
 class Concept:
 
   def __init__(self, concept=None, label=None, lineNo=None, start=None, end=None, string=None):
@@ -62,7 +66,10 @@ class Concept:
                                                 self.lineNo,
                                                 self.end,
                                                 self.label)
- 
+
+  def getSentence(self):
+    return Sentence[self.lineNo]
+
 class Relation:
 
   def __init__(self, con1=None, con2=None, string=None):
@@ -116,12 +123,14 @@ class Relation:
   def getConcepts(self):
     return self.con1, self.con2
 
+  def getSentences(self):
+    return self.con1.getSentence(), self.con2.getSentence()
+
 
 class Entry:
 
-  def __init__(self, relation, sentence):
+  def __init__(self, relation):
     self.relation = relation
-    self.sentence = sentence
 
   def validateRelation(self, relations):
     try:
@@ -131,6 +140,9 @@ class Entry:
 
   def getConcepts(self):
     return self.relation.getConcepts()
+
+  def getSentences(self):
+    return self.relation.getSentences()
 
 
 class Note:
@@ -184,7 +196,8 @@ class Note:
           for concept1 in concepts[lineNo]:
             for concept2 in concepts[lineNo]:
               if concept1 != concept2:
-                self.data.add(Entry(Relation(con1=concept1, con2=concept2), sentence))
+                self.data.add(Entry(Relation(con1=concept1, con2=concept2)))
+                Sentence[concept1.lineNo] = sentence
         except:
           continue
               
@@ -215,5 +228,7 @@ class Note:
 
     with open(outPath, 'w') as f:
       for entry in self.data:
-        print >>f, entry.relation
+        # Ommit unlabeled concept pairs
+        if entry.relation.label != 'O':
+          print >>f, entry.relation
 

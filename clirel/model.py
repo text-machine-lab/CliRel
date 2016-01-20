@@ -41,7 +41,7 @@ class Model:
       for entry in note.data:
         featDicts.append(getFeatureDict(entry))
         labels.append(getRelationLabel(entry))
-
+    
     # train classifier and vectorizer
     clf, vec = sci.train(featDicts, labels)
 

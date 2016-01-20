@@ -25,6 +25,7 @@ from notes.note import Note
 from model import Model
 
 from file_utils import extract_files, checkDir, checkFile
+from evaluate import evaluate
 
 def main():
 
@@ -56,7 +57,7 @@ def main():
                       default=None)
   parser.add_argument("--verbose", action="store_true",
                       default=False, help="Show debugging info.")
-  # Begin error-checking command args
+  
   args = parser.parse_args()
 
   if not args.test and not args.train and not args.evaluate:
@@ -68,7 +69,7 @@ def main():
     checkDir(args.train[0])
     checkDir(os.path.dirname(args.train[1]))
     if (os.path.isdir(args.train[1])):
-      sys.stderr.write("ERROR: Model expected to be file, %s is a directory\n"
+      sys.stderr.write("ERROR: Model expected to be a file, %s is a directory\n"
                  % args.train[1])
       sys.exit(1)
 
@@ -79,6 +80,17 @@ def main():
     checkFile(args.test[1])
     checkDir(args.test[2])
     test(args.test[0], args.test[1], args.test[2], args.verbose)
+
+  if args.evaluate:
+    checkDir(args.evaluate[0])
+    checkDir(args.evaluate[1])
+    checkDir(os.path.dirname(args.evaluate[2]))
+    if (os.path.isdir(args.evaluate[2])):
+      sys.stderr.write("ERROR: eval_file expected to be a file, %s is a \
+      directory\n" % args.evaluate[2])
+      sys.exit(1)
+
+    evaluate(args.evaluate[0], args.evaluate[1], args.evaluate[2], args.verbose)
 
 def train(t_dir, model_path, v):
   """
