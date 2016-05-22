@@ -183,7 +183,7 @@ class Note:
 
         try:
           concepts[concept.lineNo].add(concept)
-        except:
+        except KeyError:
           concepts[concept.lineNo] = set()
           concepts[concept.lineNo].add(concept)
 
@@ -192,13 +192,14 @@ class Note:
     with open(txt) as t:
     
       for lineNo, sentence in enumerate(t):
+        lineNo += 1 # Line number starts at 1, not 0
         try:
           for concept1 in concepts[lineNo]:
             for concept2 in concepts[lineNo]:
               if concept1 != concept2:
                 self.data.add(Entry(Relation(con1=concept1, con2=concept2)))
-                Sentence[concept1.lineNo] = sentence
-        except:
+                Sentences[concept1.lineNo] = sentence
+        except KeyError:
           continue
               
     # read relation annotations if they were provided
