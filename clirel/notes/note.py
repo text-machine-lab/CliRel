@@ -135,8 +135,20 @@ class Entry:
   def validateRelation(self, relations):
     try:
       self.relation.label = relations[self.relation]
-    except:
-      self.relation.label = 'O'
+    except KeyError:
+      cp = (self.relation.con1.label, self.relation.con2.label)
+      if cp == ('treatment', 'problem'):
+        # No relation between treatment and medical problem.
+        self.relation.label = 'NTrP'
+      elif cp == ('test', 'problem'):
+        # No relationship between test and a medical problem.
+        self.relation.label = 'NTeP'
+      elif cp == ('problem', 'problem'):
+        # No relationship between problem and problem.
+        self.relation.label = 'NPP'
+      else:
+        # Undefined pair. (Invalid relation)
+        self.relation.label = 'O'
 
   def getConcepts(self):
     return self.relation.getConcepts()
@@ -222,6 +234,9 @@ class Note:
       # Assign label to each entry that contains a valid relation
       for entry in self.data:
         entry.validateRelation(relations)
+      # Remove invalid Entries
+      self.data = self.data.intersection([x for x in self.data if x.relation.label != 'O'])
+
 
 
   def write(self, outDir):
