@@ -1,0 +1,3 @@
+( (S (NP (DT The) (JJ following) (NN example)) (VP (MD should) (VP (VB produce) (NP (JJ ten) (NN entries.))))) )
+( (S (NP (NP (NN coding)) (PP (IN in) (NP (NNS units)))) (VP (VP (VBZ helps) (S (NP (NNS writer's)) (VP (VB block) (, ,) (VB foo)))) (, ,) (CC and) (VP (VP (VB moo)) (, ,) (CONJP (RB as) (RB well) (IN as)) (VBZ helps) (PP (IN with) (NP (NN tests.)))))) )
+( (S (NP (NP (NNP However,)) (SBAR (IN because) (S (NP (NN concept) (NN order)) (VP (VBZ does) (VP (VB matter) (PP (IN in) (NP (NN relation) (NN entries,))) (NP (DT the) (JJ current) (NN codebase))))))) (VP (VBZ produces) (NP (CD 20) (NN entries.)))) )

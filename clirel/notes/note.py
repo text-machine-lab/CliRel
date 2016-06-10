@@ -16,15 +16,24 @@
             A Concept consists of the words it comprises, its label, line number
             and word indices
 """
+
+import re
+
 import os.path
 
 from nltk import sent_tokenize, word_tokenize
 from utilities import getValidPairs, getPairLabels
 
-Sentences = dict()
+from collections import defaultdict
+
+_sentences = defaultdict(dict)
 
 #TODO Add support for cross-sentence relations
 
+# Regular expression for adding quotes to parse tree string
+#tree_ex = re.compile(r'((\w+(\'|\.|-)?\w*)+|,|\.)')
+#tree_ex = re.compile(r"([=#\?:%+/$&;0-9a-zA-Z'\-_.,]+|\(\))")
+tree_ex = re.compile(r"([^\(\) ]+)")
 class Concept:
 
   def __init__(self, concept=None, label=None, lineNo=None, start=None, end=None, string=None):
@@ -67,8 +76,11 @@ class Concept:
                                                 self.end,
                                                 self.label)
 
-  def getSentence(self):
-    return Sentence[self.lineNo]
+  def getSentence(self, dn):
+    return _sentences[dn][self.lineNo][0]
+  
+  def getParse(self, dn):
+    return _sentences[dn][self.lineNo][1]
 
 class Relation:
 
@@ -123,13 +135,16 @@ class Relation:
   def getConcepts(self):
     return self.con1, self.con2
 
-  def getSentences(self):
-    return self.con1.getSentence(), self.con2.getSentence()
-
+  def get_sentences(self, dn):
+    return self.con1.getSentence(dn), self.con2.getSentence(dn)
+  
+  def get_parses(self, dn):
+    return self.con1.getParse(dn), self.con2.getParse(dn)
 
 class Entry:
 
-  def __init__(self, relation):
+  def __init__(self, relation, docName):
+    self._dn = docName
     self.relation = relation
 
   def validateRelation(self, relations):
@@ -153,19 +168,22 @@ class Entry:
   def getConcepts(self):
     return self.relation.getConcepts()
 
-  def getSentences(self):
-    return self.relation.getSentences()
+  def get_sentences(self):
+    return self.relation.get_sentences(self._dn)
+
+  def getParses(self):
+    return self.relation.get_parses(self._dn)
 
 
 class Note:
   
-  def __init__(self, txt, con, rel = None):
+  def __init__(self, txt, con, par, rel = None):
 
     self.docName = os.path.splitext(os.path.basename(txt))[0] 
     self.data = set() # A set of entries
-    self.read(txt, con, rel)
+    self.read(txt, con, par, rel)
 
-  def read(self, txt, con, rel = None):
+  def read(self, txt, con, par, rel = None):
     '''
     Note:read()
       Read in data from document set
@@ -173,6 +191,7 @@ class Note:
     @param txt: file path for medical record
     @param con: file path for concept annotations for given txt file
     @param rel: file path for relations between concepts in given con file
+    @param par: file path for parse trees
     '''
 
 
@@ -202,18 +221,24 @@ class Note:
     # read medical record
     # Only the sentences that contain concepts are needed for training/testing
     with open(txt) as t:
+      with open(par) as p:
+        for lineNo, (sent,par) in enumerate(zip(t,p)):
+          lineNo += 1 # Line number starts at 1, not 0
+          try:
+            for concept1 in concepts[lineNo]:
+              for concept2 in concepts[lineNo]:
+                if concept1 != concept2:
+                  self.data.add(Entry(Relation(con1=concept1, con2=concept2), self.docName))
+                  spt = ','.join(re.sub(tree_ex, r'"\1"', par[2:-2]).split())
+                  # Make lists not tuples
+                  spt = spt.replace('(', '[').replace(')',']')
+                  _sentences[self.docName][concept1.lineNo] = (sent, eval(spt))
+          except KeyError:
+            continue
+          except SyntaxError:
+            print "WARNING: could not make parse tree for %s : %d" % (self.docName, concept1.lineNo)
+            _sentences[self.docName][concept1.lineNo] = (sent, tuple())
     
-      for lineNo, sentence in enumerate(t):
-        lineNo += 1 # Line number starts at 1, not 0
-        try:
-          for concept1 in concepts[lineNo]:
-            for concept2 in concepts[lineNo]:
-              if concept1 != concept2:
-                self.data.add(Entry(Relation(con1=concept1, con2=concept2)))
-                Sentences[concept1.lineNo] = sentence
-        except KeyError:
-          continue
-              
     # read relation annotations if they were provided
     if rel:
 
