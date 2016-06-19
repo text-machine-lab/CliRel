@@ -17,8 +17,8 @@
 
 import sys
 
-from file_utils import filter_files
-from notes.note import Relation
+import futilities
+from note import Relation
 
 from sklearn.metrics import classification_report
 
@@ -74,10 +74,10 @@ def extract_relations(rel_file):
 
   return results
 
-def evaluate(test_dir, gold_dir, results_file, v):
+def main(test_dir, gold_dir, results_file, v):
 
-  prediction_files = filter_files(test_dir, "rel")
-  gold_files       = filter_files(gold_dir, "rel")
+  prediction_files = futilities.filter_files(test_dir, "rel")
+  gold_files       = futilities.filter_files(gold_dir, "rel")
 
   if len(prediction_files) != len(gold_files):
     sys.stderr.write("ERROR: number of files in test and gold directories do not match. \n")
@@ -124,3 +124,6 @@ def evaluate(test_dir, gold_dir, results_file, v):
     print >>f, "-" * 80
     print >>f, ""
 
+if __name__ == "__main__":
+  #TODO Unit Tests
+  pass

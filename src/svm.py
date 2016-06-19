@@ -1,20 +1,63 @@
 """ 
  Text-Machine Lab: CliRel
 
- File Name : kernels.py
+ File Name : svm.py
 
- Creation Date : 08-06-2016
+ Creation Date : 09-06-2016
 
  Created By : Renan Campos
 
- Purpose : This module defines a composite kernel consisting of an entity 
+ Purpose : Defines an svm with a custom kernel.
+           Kernels defined below.
+           This module defines a composite kernel consisting of an entity 
            kernel and a convolution tree kernel.
            based on 'Extracting Clinical Relations in Electronic Health Records
            Using Enriched Parse Trees' by (Jisung Kim, et al.)
-
 """
 
+import os
+import dill as pickle
+
+import sklearn
+import numpy as np
+
 from math import e, sqrt
+
+class Model:
+  def __init__(self):
+    self.svm = None
+
+  def train(self, X, Y):
+    """
+      Trains a classifier using a custom kernel.
+      Note X is an Nx1 array of entries 
+    """
+    self.svm = sklearn.svm.SVC(kernel=(lambda X1,X2: np.array([[K_C(i,j) for j in X1.flat] for i in X2.flat])))
+    self.svm.fit(X,Y)
+
+  def predict(self, X):
+    """
+      Uses trained support vector classifier to predict label.
+    """
+    return self.svm.predict(X)
+
+  def save(self, p_file):
+    """
+      Saves svm to pickle file
+    """
+    with open(p_file, 'wb') as f:
+      pickle.dump(self.svm, f)
+    
+  def load(self, p_file):
+    """
+      Loads svm from pickle file
+    """
+    with open(p_file, 'rb') as f:
+      self.svm = pickle.load(f)
+
+#
+# KERNELS
+#
 
 # Hyperparameters
 BETA  = e
@@ -83,3 +126,7 @@ def K_C(E1, E2):
   
   return (ALPHA *((1+K_L(R1,R2))**2/9.0) +\
        (1-ALPHA)*(K_T(T1,T2)/sqrt(K_T(T1,T1)*K_T(T2,T2))))
+
+if __name__ == "__main__":
+  # TODO Unit Test
+  pass

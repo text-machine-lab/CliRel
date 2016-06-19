@@ -1,13 +1,13 @@
 """                                                                              
  Text-Machine Lab: CliRel  
 
- File Name : file_utils.py
+ File Name : futilities.py
                                                                               
  Creation Date : 14-01-2016
                                                                               
  Created By : Renan Campos                                               
                                                                               
- Purpose : File utility functions used by clirel.py
+ Purpose : File utility functions used by clirel
 
 """
 
@@ -22,8 +22,6 @@ import subprocess
 
 # The text, concepts and relations are subdirs listed as:
 # txt, con, rel.
-# TODO glob instead of directory assumption.
-
 def checkFile(t_file):
   
   if not os.path.isfile(t_file):

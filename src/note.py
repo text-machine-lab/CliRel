@@ -18,22 +18,21 @@
 """
 
 import re
-
+import sys
 import os.path
-
 from nltk import sent_tokenize, word_tokenize
-from utilities import getValidPairs, getPairLabels
-
 from collections import defaultdict
+
+from futilities import extract_files
 
 _sentences = defaultdict(dict)
 
-#TODO Add support for cross-sentence relations
+# TODO Add support for cross-sentence relations
+# TODO Make more general (right now it is i2b2 specific)
 
 # Regular expression for adding quotes to parse tree string
-#tree_ex = re.compile(r'((\w+(\'|\.|-)?\w*)+|,|\.)')
-#tree_ex = re.compile(r"([=#\?:%+/$&;0-9a-zA-Z'\-_.,]+|\(\))")
 tree_ex = re.compile(r"([^\(\) ]+)")
+
 class Concept:
 
   def __init__(self, concept=None, label=None, lineNo=None, start=None, end=None, string=None):
@@ -146,6 +145,7 @@ class Entry:
   def __init__(self, relation, docName):
     self._dn = docName
     self.relation = relation
+    self.deep = False
 
   def validateRelation(self, relations):
     try:
@@ -168,12 +168,25 @@ class Entry:
   def getConcepts(self):
     return self.relation.getConcepts()
 
-  def get_sentences(self):
-    return self.relation.get_sentences(self._dn)
+  def getSentences(self):
+    if not self.deep:
+      return self.relation.get_sentences(self._dn)
+    else:
+      return self.sentences
 
   def getParses(self):
-    return self.relation.get_parses(self._dn)
+    if not self.deep:
+      return self.relation.get_parses(self._dn)
+    else:
+      return self.parses
 
+  def deepCopy(self):
+    """
+      Make the Entry standalone so that it has the parses and sentences stored.
+    """
+    self.deep = True
+    self.sentences = self.relation.get_sentences(self._dn)
+    self.parses = self.relation.get_parses(self._dn)
 
 class Note:
   
@@ -272,4 +285,30 @@ class Note:
         # Ommit unlabeled concept pairs
         if entry.relation.label != 'O':
           print >>f, entry.relation
+
+def makeNotes(dir, v, train=False):
+  """
+    Returns a list of notes
+  """
+  notes = list()
+
+  if (v):
+    sys.stdout.write("\t\tExtracting files from %s\n" % dir)
+
+  files = extract_files(dir, train)
+
+  if (files == None):
+    sys.stderr.write("Error parsing files\n")
+    sys.exit(1)
+
+  for file in files:
+    notes.append(Note(*file))
+
+  if (v):
+    sys.stdout.write("\t\t%d notes created\n" % len(notes))
+
+  return notes
+
+if __name__ == "__main__":
+  notes = makeNotes('i2b2_examples/', True, True)
 
