@@ -32,8 +32,6 @@ def main(t_dir, model_path, res_dir, v):
   entries = list()
   for n in notes:
     entries += n.data
-  entries = np.array([[e] for e in entries])
-  print len(entries)
 
   # Load model
   if (v):
@@ -47,7 +45,7 @@ def main(t_dir, model_path, res_dir, v):
   labels = model.predict(entries)
 
   for e, label in zip(entries, labels):
-    e[0].relation.label = label
+    e.relation.label = label
 
   # Write labels to files
   if (v):

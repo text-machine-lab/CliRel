@@ -23,37 +23,62 @@ import numpy as np
 
 from math import e, sqrt
 
+_PREDICT = None
+
 class Model:
   def __init__(self):
     self.svm = None
+    self.data = None
+  
+  def K(self, X1, X2):
+    """
+      Wrapper that SVM uses to call composite kernel.
+      Redirects index vectors
+    """
+    rows = list()
+    for i in X1.flat:
+      cols = list()
+      for j in X2.flat:
+        cols.append(K_C(_PREDICT[int(i)], self.support[int(j)]))
+      rows.append(cols)
+    return np.array(rows)
 
   def train(self, X, Y):
     """
       Trains a classifier using a custom kernel.
       Note X is an Nx1 array of entries 
     """
-    self.svm = sklearn.svm.SVC(kernel=(lambda X1,X2: np.array([[K_C(i,j) for j in X1.flat] for i in X2.flat])))
-    self.svm.fit(X,Y)
+    global _PREDICT 
+    _PREDICT= X
+    
+    self.support = X[:]
+    
+    self.svm = sklearn.svm.SVC(kernel=self.K)
+    self.svm.fit([[i] for i in range(len(X))],Y)
 
   def predict(self, X):
     """
       Uses trained support vector classifier to predict label.
     """
-    return self.svm.predict(X)
+    global _PREDICT
+    _PREDICT = X
+    return self.svm.predict([[i] for i in range(len(X))])
 
   def save(self, p_file):
     """
       Saves svm to pickle file
     """
     with open(p_file, 'wb') as f:
-      pickle.dump(self.svm, f)
+      pickle.dump(self, f)
     
   def load(self, p_file):
     """
       Loads svm from pickle file
     """
     with open(p_file, 'rb') as f:
-      self.svm = pickle.load(f)
+      obj = pickle.load(f)
+    self.svm = obj.svm
+    self.support = obj.support
 
 #
 # KERNELS

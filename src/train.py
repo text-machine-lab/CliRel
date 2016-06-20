@@ -31,10 +31,12 @@ def main(t_dir, model_path, v):
   entries = list()
   for n in notes:
     entries += n.data    
-  entries = np.array([[e] for e in entries])
-  labels  = [e[0].relation.label for e in entries]
+  labels  = [e.relation.label for e in entries]
+  
+  # Make entries standalone
+  for e in entries:
+    e.deepCopy()
 
-  print len(entries)
   # Create Model
   if (v):
     sys.stdout.write("\tCreating model...\n")
