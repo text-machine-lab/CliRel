@@ -22,136 +22,95 @@ import sklearn
 import numpy as np
 
 from math import e, sqrt
+import subprocess
 
-_PREDICT = None
+from futilities import abs_path
+
+_CONS   = dict((v,k) for k,v in enumerate(['problem','treatment','test']))
+_LABELS = dict((k,v) for k,v in enumerate(['TrIP','TrWP','TrCP',
+                                           'TrAP','TrNAP','TeRP',
+                                           'TeCP','PIP', 'NTrP', 
+                                           'NTeP','NPP']))
 
 class Model:
   def __init__(self):
-    self.svm = None
-    self.data = None
-  
-  def K(self, X1, X2):
-    """
-      Wrapper that SVM uses to call composite kernel.
-      Redirects index vectors
-    """
-    rows = list()
-    for i in X1.flat:
-      cols = list()
-      for j in X2.flat:
-        cols.append(K_C(_PREDICT[int(i)], self.support[int(j)]))
-      rows.append(cols)
-    return np.array(rows)
+    self.name = str(os.getpid()) # Name files will be trained on.
 
   def train(self, X, Y):
     """
       Trains a classifier using a custom kernel.
-      Note X is an Nx1 array of entries 
+      Note: X is a list of entries Y is a list of labels 
     """
-    global _PREDICT 
-    _PREDICT= X
-    
-    self.support = X[:]
-    
-    self.svm = sklearn.svm.SVC(kernel=self.K)
-    self.svm.fit([[i] for i in range(len(X))],Y)
+    for label in _LABELS.values():
+      f_name = os.path.join(abs_path('../model'), self.name + '.' + label + '.tmp')
+      with open(f_name, 'w') as f:
+        for y, x in zip(Y,X):
+          if y == label:
+            y = '1'
+          else:
+            y = '-1'
+          out = (str(y) + " |BT| " + x.getParses()[0] + " |ET|"
+                 + " 1:" + str(_CONS[x.getConcepts()[0].label]) 
+                 + " 2:" + str(_CONS[x.getConcepts()[1].label]) + " |EV|\n")
+          f.write(out)
 
+
+      subprocess.call([abs_path('../bin/svm-light-TK-1.2.1/svm_learn'), 
+                       '-t', '4', 
+                       '-u', '.5', 
+                       f_name,
+                       f_name.split('.tmp')[0] + '.svm'])
+      
+      os.remove(f_name)
+
+    
   def predict(self, X):
     """
       Uses trained support vector classifier to predict label.
     """
-    global _PREDICT
-    _PREDICT = X
-    return self.svm.predict([[i] for i in range(len(X))])
+    f_name = os.path.join(abs_path("../model"), self.name + '.predict')
+
+    first = True
+    with open(f_name, 'w') as f:
+      for x in X:
+        out = ("|BT| " + x.getParses()[0] + " |ET|"
+               + " 1:" + str(_CONS[x.getConcepts()[0].label]) 
+               + " 2:" + str(_CONS[x.getConcepts()[1].label]) + " |EV|\n")
+        f.write(out)
+    for label in _LABELS.values():
+      m_name = os.path.join(abs_path("../model"), self.name + '.' + label + '.svm')
+      r_name = os.path.join(abs_path("../results"), self.name + '.' + label + '.predict')
+      subprocess.call([abs_path('../bin/svm-light-TK-1.2.1/svm_classify'), 
+                       f_name, 
+                       m_name,
+                       r_name])
+      r_label = list()
+      with open(r_name, 'r') as f:
+        for line in f:
+          r_label.append(float(line))
+      if first:
+        results = np.array(r_label).reshape(len(r_label),1)
+        first = False
+      else:
+        results = np.concatenate((results,np.array(r_label).reshape(len(r_label),1)),axis=1)
+      os.remove(r_name)    
+    os.remove(f_name)
+    
+    return [_LABELS[r] for r in results.argmax(axis=1)]
+    
+              
 
   def save(self, p_file):
     """
-      Saves svm to pickle file
+      Saves svm to pickle file moves svm files to model dir.
     """
     with open(p_file, 'wb') as f:
       pickle.dump(self, f)
-    
+
   def load(self, p_file):
     """
       Loads svm from pickle file
     """
     with open(p_file, 'rb') as f:
       obj = pickle.load(f)
-    self.svm = obj.svm
-    self.support = obj.support
-
-#
-# KERNELS
-#
-
-# Hyperparameters
-BETA  = e
-ALPHA = 0.5
-
-#
-# Helpers
-#
-def _getProduction(n):
-  return [n[0], [t[0] for t in n[1:]]]
-
-def _isPreTerminal(p):
-  return (type(p[1]) == str)
-
-def _C(n1, n2, l = 0):
-  p1 = _getProduction(n1); p2 = _getProduction(n2)
-  
-  if p1 != p2:
-    return 0
-
-  if _isPreTerminal(p1) and _isPreTerminal(p2):
-    return 1
-  
-  total = 1
-  for i in range(len(p1[1])):
-    total *= (1 + _C(n1[i+1], n2[i+1], l+1))
-
-  return BETA**-l * total 
-
-#
-# Kernels
-#
-def K_T(T1, T2):
-  """
-    Convolution Tree Kernel - computes the similarity between two given parse
-    trees based on how similar the two trees are in terms of matches between
-    their fragments (subtrees)
-  """
-  total = _C(T1,T2)
-
-  if type(T1[1]) == str or type(T2[1]) == str:
-    return total
-
-  for n1 in T1[1:]:
-    for n2 in T2[1:]:
-      total += K_T(n1,n2)
-
-  return total
-
-def K_L(R1, R2):
-  """
-    Entity Kernel - Computes the similarity between two relations using features
-    of the two entities in each relation.
-  """
-  c1a,c1b = R1.getConcepts(); c2a,c2b = R2.getConcepts()
-
-  return ((c1a.label == c2a.label) + (c1b.label == c2b.label))
-
-def K_C(E1, E2):
-  """
-    Linear combination of the normalized polinomial expansion of the entity 
-    kernel and the normalized tree kernel.
-  """
-  R1 = E1.relation ;        R2 = E2.relation
-  T1 = E1.getParses()[0] ; T2 = E2.getParses()[0]
-  
-  return (ALPHA *((1+K_L(R1,R2))**2/9.0) +\
-       (1-ALPHA)*(K_T(T1,T2)/sqrt(K_T(T1,T1)*K_T(T2,T2))))
-
-if __name__ == "__main__":
-  # TODO Unit Test
-  pass
+    self.name = obj.name

@@ -19,6 +19,8 @@ import train
 import predict
 import evaluate
 
+from futilities import checkDir, checkFile
+
 def main():
 
   parser = argparse.ArgumentParser(description="CliRel (Clinical Relation) \

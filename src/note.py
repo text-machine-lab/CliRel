@@ -27,9 +27,6 @@ from futilities import extract_files
 
 _sentences = defaultdict(dict)
 
-# TODO Add support for cross-sentence relations
-# TODO Make more general (right now it is i2b2 specific)
-
 # Regular expression for adding quotes to parse tree string
 tree_ex = re.compile(r"([^\(\) ]+)")
 
@@ -145,7 +142,6 @@ class Entry:
   def __init__(self, relation, docName):
     self._dn = docName
     self.relation = relation
-    self.deep = False
 
   def validateRelation(self, relations):
     try:
@@ -169,24 +165,10 @@ class Entry:
     return self.relation.getConcepts()
 
   def getSentences(self):
-    if not self.deep:
-      return self.relation.get_sentences(self._dn)
-    else:
-      return self.sentences
+    return self.relation.get_sentences(self._dn)
 
   def getParses(self):
-    if not self.deep:
-      return self.relation.get_parses(self._dn)
-    else:
-      return self.parses
-
-  def deepCopy(self):
-    """
-      Make the Entry standalone so that it has the parses and sentences stored.
-    """
-    self.deep = True
-    self.sentences = self.relation.get_sentences(self._dn)
-    self.parses = self.relation.get_parses(self._dn)
+    return self.relation.get_parses(self._dn)
 
 class Note:
   
@@ -208,7 +190,6 @@ class Note:
     '''
 
 
-    # TODO: convert from line number used in annoation to the actual sentence number obtained by the sent_tokenizer.
     # break text by sentence or token
     sentenceBreak = lambda text: text.split('\n')
     tokenBreak = word_tokenize
@@ -241,16 +222,17 @@ class Note:
             for concept1 in concepts[lineNo]:
               for concept2 in concepts[lineNo]:
                 if concept1 != concept2:
-                  self.data.add(Entry(Relation(con1=concept1, con2=concept2), self.docName))
                   spt = ','.join(re.sub(tree_ex, r'"\1"', par[2:-2]).split())
                   # Make lists not tuples
                   spt = spt.replace('(', '[').replace(')',']')
-                  _sentences[self.docName][concept1.lineNo] = (sent, eval(spt))
+                  eval(spt)
+                  self.data.add(Entry(Relation(con1=concept1, con2=concept2), self.docName))
+                  _sentences[self.docName][concept1.lineNo] = (sent, par[2:-2])
           except KeyError:
             continue
           except SyntaxError:
             print "WARNING: could not make parse tree for %s : %d" % (self.docName, concept1.lineNo)
-            _sentences[self.docName][concept1.lineNo] = (sent, tuple())
+            _sentences[self.docName][concept1.lineNo] = (sent, '(root NULL)')
     
     # read relation annotations if they were provided
     if rel:
@@ -283,7 +265,7 @@ class Note:
     with open(outPath, 'w') as f:
       for entry in self.data:
         # Ommit unlabeled concept pairs
-        if entry.relation.label != 'O':
+        if entry.relation.label !=  'O':
           print >>f, entry.relation
 
 def makeNotes(dir, v, train=False):

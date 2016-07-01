@@ -16,6 +16,7 @@ import numpy as np
 
 import note
 import svm as ml
+from futilities import abs_path
 
 def main(t_dir, model_path, v):
   """
@@ -33,9 +34,8 @@ def main(t_dir, model_path, v):
     entries += n.data    
   labels  = [e.relation.label for e in entries]
   
-  # Make entries standalone
-  for e in entries:
-    e.deepCopy()
+  if (v):
+    print "\t%d entries read" % len(entries)
 
   # Create Model
   if (v):
@@ -49,4 +49,4 @@ def main(t_dir, model_path, v):
   model.save(model_path)
 
 if __name__ == "__main__":
-  main('i2b2_examples/', '../model/example.mod', True)
+  main(abs_path('./i2b2_examples/'), abs_path('../model/example.mod'), True)

@@ -17,6 +17,7 @@ import numpy as np
 
 import note 
 import svm as ml
+from futilities import abs_path
 
 def main(t_dir, model_path, res_dir, v):
   """
@@ -54,4 +55,6 @@ def main(t_dir, model_path, res_dir, v):
     n.write(res_dir)
 
 if __name__ == "__main__":
-  main('i2b2_examples/', '../model/example.mod', '../results/', True)
+  main(abs_path('./i2b2_examples/'), 
+       abs_path('../model/example.mod'), 
+       abs_path('../results/'), True)

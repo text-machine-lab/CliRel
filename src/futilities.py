@@ -45,6 +45,10 @@ def filter_files(dir, extension):
 
   return files
 
+def abs_path(path):
+  """ Return absolute path from where this file is located """
+  return os.path.join(os.path.dirname(os.path.abspath(__file__)), path)
+
 def extract_files(t_dir, train=False):
   """ 
     Returns a list of tuples (text_file, concept_file, relation_file) in
@@ -55,7 +59,7 @@ def extract_files(t_dir, train=False):
   txt_path = os.path.join(t_dir, "txt") 
   con_path = os.path.join(t_dir, "concept") 
   rel_path = os.path.join(t_dir, "rel") 
-  par_path = os.path.join(t_dir, "parse")
+  par_path = os.path.join(abs_path("../data"), "parse")
 
   # If the main, txt or con don't exist. Or if it is not a test and rel doesn't
   checkDir(txt_path)
@@ -74,7 +78,7 @@ def extract_files(t_dir, train=False):
   parse = [os.path.basename(os.path.splitext(f)[0]) for f in dirs[2]]
   for t in dirs[0]:
     if os.path.basename(t) not in parse:
-      subprocess.call(['../bin/parse_texts.sh',t])
+      subprocess.call([abs_path('../bin/parse_texts.sh'),t])
 
   dirs[2] = filter_files(par_path, "pt")
 

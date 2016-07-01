@@ -21,6 +21,7 @@ import futilities
 from note import Relation
 
 from sklearn.metrics import classification_report
+from futilities import abs_path
 
 #
 # Should all relations be gathered and then evaluate, or should evaluation be
@@ -125,5 +126,6 @@ def main(test_dir, gold_dir, results_file, v):
     print >>f, ""
 
 if __name__ == "__main__":
-  #TODO Unit Tests
-  pass
+  main(abs_path("../results/"), 
+       abs_path("./i2b2_examples/rel/"),
+       abs_path("../results/i2b2_results"), True)
