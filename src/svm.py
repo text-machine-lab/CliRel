@@ -49,7 +49,7 @@ class Model:
             y = '1'
           else:
             y = '-1'
-          out = (str(y) + " |BT| " + x.getParses()[0] + " |ET|"
+          out = (str(y) + " |BT| " + str(x.getParses()[0]) + " |ET|"
                  + " 1:" + str(_CONS[x.getConcepts()[0].label]) 
                  + " 2:" + str(_CONS[x.getConcepts()[1].label]) + " |EV|\n")
           f.write(out)
@@ -73,7 +73,7 @@ class Model:
     first = True
     with open(f_name, 'w') as f:
       for x in X:
-        out = ("|BT| " + x.getParses()[0] + " |ET|"
+        out = ("|BT| " + str(x.getParses()[0]) + " |ET|"
                + " 1:" + str(_CONS[x.getConcepts()[0].label]) 
                + " 2:" + str(_CONS[x.getConcepts()[1].label]) + " |EV|\n")
         f.write(out)
