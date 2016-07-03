@@ -59,7 +59,7 @@ def extract_files(t_dir, train=False):
   txt_path = os.path.join(t_dir, "txt") 
   con_path = os.path.join(t_dir, "concept") 
   rel_path = os.path.join(t_dir, "rel") 
-  par_path = os.path.join(abs_path("../data"), "parse")
+  par_path = os.path.join(t_dir, "parse")
 
   # If the main, txt or con don't exist. Or if it is not a test and rel doesn't
   checkDir(txt_path)

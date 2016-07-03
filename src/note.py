@@ -29,6 +29,37 @@ _sentences = defaultdict(dict)
 
 # Regular expression for adding quotes to parse tree string
 tree_ex = re.compile(r"([^\(\) ]+)")
+class ParseTree:
+  def __init__(self, s_t):
+    spt = ','.join(re.sub(tree_ex, r'"\1"', s_t[2:-2]).split())
+    # Make lists not tuples
+    self.spt = eval(spt.replace('(', '[').replace(')',']'))
+
+  def __str__(self):
+    return '( ' + self._str(self.spt) + ' )'
+
+  def __repr__(self):
+    return str(self)
+
+  def _getProduction(self, n):
+    if self._isPreterminal(n):
+      return n
+    return [n[0], [t[0] for t in n[1:]]]
+
+  def _isPreterminal(self, p):
+    return (type(p[1]) == str)
+
+  def _str(self, n):
+    p = self._getProduction(n)
+
+    if self._isPreterminal(n):
+      return '(' + p[0] + ' ' + p[1] + ')'
+    
+    out = '(' + n[0]
+    for i in range(len(p[1])):
+      out += ' ' + self._str(n[i+1])
+    out += ')'
+    return out
 
 class Concept:
 
@@ -216,18 +247,18 @@ class Note:
     # Only the sentences that contain concepts are needed for training/testing
     with open(txt) as t:
       with open(par) as p:
-        for lineNo, (sent,par) in enumerate(zip(t,p)):
+        for lineNo, (sent,pars) in enumerate(zip(t,p)):
           lineNo += 1 # Line number starts at 1, not 0
           try:
             for concept1 in concepts[lineNo]:
               for concept2 in concepts[lineNo]:
                 if concept1 != concept2:
-                  spt = ','.join(re.sub(tree_ex, r'"\1"', par[2:-2]).split())
+                  #spt = ','.join(re.sub(tree_ex, r'"\1"', pars[2:-2]).split())
                   # Make lists not tuples
-                  spt = spt.replace('(', '[').replace(')',']')
-                  eval(spt)
+                  #spt = spt.replace('(', '[').replace(')',']')
+                  #eval(spt)
                   self.data.add(Entry(Relation(con1=concept1, con2=concept2), self.docName))
-                  _sentences[self.docName][concept1.lineNo] = (sent, par[2:-2])
+                  _sentences[self.docName][concept1.lineNo] = (sent, ParseTree(pars))
           except KeyError:
             continue
           except SyntaxError:
