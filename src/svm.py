@@ -31,6 +31,7 @@ _LABELS = dict((k,v) for k,v in enumerate(['TrIP','TrWP','TrCP',
                                            'TrAP','TrNAP','TeRP',
                                            'TeCP','PIP', 'NTrP', 
                                            'NTeP','NPP']))
+MODE = 'spt'
 
 from sklearn.cross_validation import KFold
 from sklearn.metrics import f1_score
@@ -61,6 +62,7 @@ def hotty(con1, con2):
 class Model:
   def __init__(self):
     self.name = str(os.getpid()) # Name files will be trained on.
+    self.mode = MODE
 
   def train(self, X, Y):
     """
@@ -75,8 +77,8 @@ class Model:
             y = '1'
           else:
             y = '-1'
-          print x.getEnrichedTree()
-          out = (str(y) + " |BT| " + str(x.getEnrichedTree()) + " |ET|"
+          print x.getEnrichedTree(self.mode)
+          out = (str(y) + " |BT| " + str(x.getEnrichedTree(self.mode)) + " |ET|"
                  + hotty(x.getConcepts()[0].label, x.getConcepts()[1].label)
                  + " |EV|\n")
           f.write(out)
@@ -108,7 +110,7 @@ class Model:
     first = True
     with open(f_name, 'w') as f:
       for x in X:
-        out = ("|BT| " + str(x.getEnrichedTree()) + " |ET|"
+        out = ("|BT| " + str(x.getEnrichedTree(self.mode)) + " |ET|"
                + hotty(x.getConcepts()[0].label, x.getConcepts()[1].label)
                + " |EV|\n")
         f.write(out)
@@ -149,3 +151,4 @@ class Model:
     with open(p_file, 'rb') as f:
       obj = pickle.load(f)
     self.name = obj.name
+    self.mode = obj.mode

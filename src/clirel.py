@@ -29,12 +29,13 @@ def main():
                                     two medical concepts in a sentence.")
 
   # Add arguments here
-  parser.add_argument("--train", nargs=2, 
-                      metavar=("train_dir", "model_file"), type=str, 
+  parser.add_argument("--train", nargs=3, 
+                      metavar=("train_dir", "model_file", "model_type"), type=str, 
                       help="Directory should contain three subdirs (txt, \
                             concept, rel) containing .txt, .con, .rel files. \
                             Will train a classifier on this data. \
-                            Trained model will be written to specified model file.",
+                            Trained model will be written to specified model file.\n \
+                            Current model types:\n\tsvm-spt\n\tsvm-insert\n\tsvm-suffix",
                       default=None)
   parser.add_argument("--predict", nargs=3,
                       metavar=("test_dir", "model_file", "results_dir"), type=str,
@@ -67,7 +68,7 @@ def main():
                  % args.train[1])
       sys.exit(1)
 
-    train.main(args.train[0], args.train[1], args.verbose)
+    train.main(args.train[0], args.train[1], args.train[2], args.verbose)
 
   if args.predict:
     checkDir(args.predict[0])

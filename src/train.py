@@ -15,10 +15,10 @@ import sys
 import numpy as np
 
 import note
-import svm as ml
+import svm
 from futilities import abs_path
 
-def main(t_dir, model_path, v):
+def main(t_dir, model_path, model_type, v):
   """
      Extract files from the training directory and make a note instance for each
      Train a model the given notes. 
@@ -40,6 +40,20 @@ def main(t_dir, model_path, v):
   # Create Model
   if (v):
     sys.stdout.write("\tCreating model...\n")
+  
+  if model_type == 'svm-spt':
+    svm.MODE = 'spt'
+    ml = svm
+  elif model_type == 'svm-insert':
+    svm.MODE = 'insert'
+    ml = svm
+  elif model_type == 'svm-suffix':
+    svm.MODE = 'suffix'
+    ml = svm
+  else:
+    sys.stderr.write("ERROR: Invalid model type.\n")
+    sys.exit(1)
+  
   model = ml.Model()
   model.train(entries, labels)
 
@@ -49,4 +63,6 @@ def main(t_dir, model_path, v):
   model.save(model_path)
 
 if __name__ == "__main__":
-  main(abs_path('./i2b2_examples/'), abs_path('../model/example.mod'), True)
+  main(abs_path('./i2b2_examples/'), abs_path('../model/example-spt.mod'), 'svm-spt', True)
+  main(abs_path('./i2b2_examples/'), abs_path('../model/example-insert.mod'), 'svm-insert', True)
+  main(abs_path('./i2b2_examples/'), abs_path('../model/example-suffix.mod'), 'svm-suffix', True)
