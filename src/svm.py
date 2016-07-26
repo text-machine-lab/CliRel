@@ -75,6 +75,7 @@ class Model:
             y = '1'
           else:
             y = '-1'
+          print x.getEnrichedTree()
           out = (str(y) + " |BT| " + str(x.getEnrichedTree()) + " |ET|"
                  + hotty(x.getConcepts()[0].label, x.getConcepts()[1].label)
                  + " |EV|\n")
@@ -90,10 +91,12 @@ class Model:
                        '-T', '3.35',
                        '-N', '3',
                        '-W', 'S',
+                       '-v', '0',
                        f_name,
-                       f_name.split('.tmp')[0] + '.svm'])
+                       f_name.split('.tmp')[0] + '.svm',
+                      ])
       
-      #os.remove(f_name)
+      os.remove(f_name)
 
     
   def predict(self, X):

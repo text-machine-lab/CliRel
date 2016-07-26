@@ -333,10 +333,10 @@ class Note:
         concept = Concept(string=line)
 
         try:
-          concepts[concept.lineNo].add(concept)
+          concepts[concept.lineNo].append(concept)
         except KeyError:
-          concepts[concept.lineNo] = set()
-          concepts[concept.lineNo].add(concept)
+          concepts[concept.lineNo] = list()
+          concepts[concept.lineNo].append(concept)
 
     # read medical record
     # Only the sentences that contain concepts are needed for training/testing
@@ -345,11 +345,18 @@ class Note:
         for lineNo, (sent,pars) in enumerate(zip(t,p)):
           lineNo += 1 # Line number starts at 1, not 0
           try:
-            for concept1 in concepts[lineNo]:
-              for concept2 in concepts[lineNo]:
-                if concept1 != concept2:
-                  self.data.add(Entry(Relation(con1=concept1, con2=concept2), self.docName))
-                  _sentences[self.docName][concept1.lineNo] = (sent, ParseTree(pars))
+          #>>> for i, v1 in enumerate(a):
+          #...     for v2 in a[i+1:]:
+          #...             print v1, v2
+            for i, concept1 in enumerate(concepts[lineNo]):
+              for concept2 in concepts[lineNo][i+1:]:
+                self.data.add(Entry(Relation(con1=concept1, con2=concept2), self.docName))
+                _sentences[self.docName][concept1.lineNo] = (sent, ParseTree(pars))
+            #for concept1 in concepts[lineNo]:
+            #  for concept2 in concepts[lineNo]:
+            #    if concept1 != concept2:
+            #      self.data.add(Entry(Relation(con1=concept1, con2=concept2), self.docName))
+            #      _sentences[self.docName][concept1.lineNo] = (sent, ParseTree(pars))
           except KeyError:
             continue
           except SyntaxError:

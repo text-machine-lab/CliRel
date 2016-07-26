@@ -1,3 +1,11 @@
-The following example should produce ten entries.
-coding in units helps writer's block , foo , and moo , as well as helps with tests.
-However, because concept order does matter in relation entries, the current codebase produces 20 entries.
+This treatment improves medical problem .
+Treatment worsens medical problem .
+Treatment causes medical problem .
+The treatment is administered for medical problem .
+Treatment is not administered because of medical problem .
+There were many symptoms , but test reveals medical problem .
+The great tests conducted to investigate medical problem .
+Medical problem indicated medical problem  ; which is really important .
+The great tests conducted to investigate medical problem . VOID
+Medical problem indicated medical problem  ; which is really important . VOID
+This treatment improves medical problem . VOID
