@@ -19,7 +19,7 @@ d=`dirname $0`
 if [[ -f $1 ]]
 then
   printf "Parsing $1...\n"
-  sed 's/(\+\|)\+//g' $1 | java -jar $d/berkeleyparser/BerkeleyParser-1.7.jar -gr $d/berkeleyparser/eng_sm6.gr > $d/../data/parse/`basename $1.pt`
+  sed 's/(\+\|)\+//g' $1 | java -jar $d/berkeleyparser/BerkeleyParser-1.7.jar -gr $d/berkeleyparser/eng_sm6.gr > `dirname $1`/../parse/`basename $1.pt`
   exit
 fi
 

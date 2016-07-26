@@ -20,6 +20,7 @@
 import re
 import sys
 import os.path
+from copy import deepcopy
 from nltk import sent_tokenize, word_tokenize
 from collections import defaultdict
 
@@ -31,12 +32,92 @@ _sentences = defaultdict(dict)
 tree_ex = re.compile(r"([^\(\) ]+)")
 class ParseTree:
   def __init__(self, s_t):
-    spt = ','.join(re.sub(tree_ex, r'"\1"', s_t[2:-2]).split())
+    t = ','.join(re.sub(tree_ex, r'"\1"', s_t[2:-2]).split())
     # Make lists not tuples
-    self.spt = eval(spt.replace('(', '[').replace(')',']'))
+    self.t = eval(t.replace('(', '[').replace(')',']'))
+
+  def spt(self, *args):
+    """
+      Returns a tree trimmed into the shortest path between terminals a and b
+      WARNING: ERROR occurs if a == b for a and b in args 
+    """
+    out = deepcopy(self)
+    out.t = out._spt(out.t, *args)
+    return out
+
+  def insertion(self, entities, labels):
+    """
+      Returns enriched tree for with inserted label nodes for the specified entities.
+    """
+    out = deepcopy(self)
+    for e,l in zip(entities, labels):
+      tree = out._spt(out.t,*e.split(" "))
+      copy = tree[:]
+      while len(tree):
+        tree.pop()
+      tree.insert(0,copy)
+      tree.insert(0,l)
+    return out
+
+  def suffix(self, entities, labels):
+    """
+      Returns enriched tree with suffixes
+    """
+    out = deepcopy(self)
+    for entity, label in zip(entities, labels):
+      t = out._spt(out.t,*entity.split(" "))
+      out._suffix(t, label)
+
+    return out
+
+  def _spt(self,n,*args):
+    p = self._getProduction(n)
+
+    if self._isPreterminal(n):
+      return n
+
+    out = n
+          
+    for i in range(len(p[1])):
+      flag = True
+      for a in args:
+        if not self._find(n[i+1], a):
+          flag = False
+          break
+      if flag:
+        out = self._spt(n[i+1], *args)
+                                                   
+    return out
+                                
+
+  def _find(self, n, a):
+    p = self._getProduction(n)
+
+    if self._isPreterminal(n):
+      return a == p[1]
+
+    for i in range(len(p[1])):
+      if self._find(n[i+1], a):
+        return True
+
+    return False
+  
+  def _suffix(self, n, label):
+    p = self._getProduction(n)
+
+    if self._isPreterminal(n):
+      n[0] += '-' + label
+      return n
+
+    for i in range(len(p[1])):
+      if type(n[i]) == str:
+        n[i] += '-' + label
+      self._suffix(n[i+1], label)
+
+    return n
 
   def __str__(self):
-    return '( ' + self._str(self.spt) + ' )'
+    return '( ' + self._str(self.t) + ' )'
 
   def __repr__(self):
     return str(self)
@@ -201,6 +282,20 @@ class Entry:
   def getParses(self):
     return self.relation.get_parses(self._dn)
 
+  def getEnrichedTree(self, mode='spt'):
+    """
+      Returns enriched tree.
+    """
+    parse = self.getParses()[0]
+    con_tokens = [c.concept for c in self.getConcepts()]
+    con_labels = [c.label for c in self.getConcepts()]
+    if mode == 'insert':
+      return parse.insertion(con_tokens, con_labels)
+    elif mode == 'suffix':
+      return parse.suffix(con_tokens, con_labels)
+    else:
+      return parse.spt(*[t for t in [c.split for c in con_tokens]])
+      
 class Note:
   
   def __init__(self, txt, con, par, rel = None):
@@ -253,17 +348,13 @@ class Note:
             for concept1 in concepts[lineNo]:
               for concept2 in concepts[lineNo]:
                 if concept1 != concept2:
-                  #spt = ','.join(re.sub(tree_ex, r'"\1"', pars[2:-2]).split())
-                  # Make lists not tuples
-                  #spt = spt.replace('(', '[').replace(')',']')
-                  #eval(spt)
                   self.data.add(Entry(Relation(con1=concept1, con2=concept2), self.docName))
                   _sentences[self.docName][concept1.lineNo] = (sent, ParseTree(pars))
           except KeyError:
             continue
           except SyntaxError:
             print "WARNING: could not make parse tree for %s : %d" % (self.docName, concept1.lineNo)
-            _sentences[self.docName][concept1.lineNo] = (sent, '(root NULL)')
+            _sentences[self.docName][concept1.lineNo] = (sent, ParseTree('( (root NULL) )'))
     
     # read relation annotations if they were provided
     if rel:
@@ -324,4 +415,20 @@ def makeNotes(dir, v, train=False):
 
 if __name__ == "__main__":
   notes = makeNotes('i2b2_examples/', True, True)
+  entries = list()
+  for n in notes:
+    entries += n.data
+  par = entries[0].getParses()[0]
+  print par
+  print
+  print par.spt(*'coding in units'.split(" "))
+  print
+  print par.insertion(["coding", "units"],["ACTION", "MEASURE"])
+  print par.suffix(["with tests."], ["###"])
+  print "spt:"
+  print entries[0].getEnrichedTree()
+  print "Insertion:"
+  print entries[0].getEnrichedTree('insert')
+  print "Suffix"
+  print entries[0].getEnrichedTree('suffix')
 

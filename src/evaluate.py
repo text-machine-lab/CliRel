@@ -30,12 +30,12 @@ from futilities import abs_path
 
 def relation_detection_metric(p_r, g_r):
   """
-    Enter glorious comments here
-    True Negatives aren't important when computing precision or recall.
+    Metric calculations
   """
 
   TP = 0
   FP = 0
+  FN = 0
   
   # Relation labels for true positive will be used for classification testing
   p_labels = list()
@@ -46,21 +46,27 @@ def relation_detection_metric(p_r, g_r):
       p_label = p_r[each]
       g_label = g_r[each]
       
-      p_labels.append(p_label)
+    except KeyError:
+    # False Positive: pred contains relation but gold does not
+      if p_label[0] != 'N':
+        FP += 1
+
+  for each in g_r.keys():
+    try:
+      g_label = g_r[each]
+      p_label = p_r[each]
+      
       g_labels.append(g_label)
+      p_labels.append(p_label)
 
       # True  Positive: both gold and pred sets contain relation
-      TP += 1
-    except:
-      # False Positive: pred contains relation but gold does not
-      FP += 1
+      if p_label[0] != 'N':
+        TP += 1
+      else:
+        FN += 1
+    except KeyError:
+      continue
 
-  # False Negative: gold contains relation but pred does not
-  # Can be calculated as the difference between the number of relations in the
-  # gold set and the number in the predicted set, once the false positives are
-  # neglected. 
-  FN = max(0, len(g_r) - (len(p_r) - FP))
- 
   return p_labels, g_labels, TP, FP, FN 
 
 
@@ -71,6 +77,7 @@ def extract_relations(rel_file):
   with open(rel_file, 'r') as f:
     for line in f:
       r = Relation(string=line)
+      #if r.label not in ['NPP','NTeP','NTrP']: 
       results[r] = r.label
 
   return results
@@ -112,7 +119,7 @@ def main(test_dir, gold_dir, results_file, v):
     print >>f, "-" * 80
     print >>f, "Relation Detection Statistics:"
     print >>f, ""
-    print >>f, "\tTrue positives: ",   total_TP
+    print >>f, "\tTrue positives: ",  total_TP
     print >>f, "\tFalse positives:",  total_FP
     print >>f, "\tFalse negatives:",  total_FN
     print >>f, ""

@@ -32,6 +32,32 @@ _LABELS = dict((k,v) for k,v in enumerate(['TrIP','TrWP','TrCP',
                                            'TeCP','PIP', 'NTrP', 
                                            'NTeP','NPP']))
 
+from sklearn.cross_validation import KFold
+from sklearn.metrics import f1_score
+
+def hotty(con1, con2):
+  if con1 == 'problem' and con2 == 'problem':
+    return " 1:1 2:0 3:0 4:1 5:0 6:0"
+  if con1 == 'problem' and con2 == 'treatment':
+    return " 1:1 2:0 3:0 4:0 5:1 6:0"
+  if con1 == 'problem' and con2 == 'test':
+    return " 1:1 2:0 3:0 4:0 5:0 6:1"
+  
+  if con1 == 'treatment' and con2 == 'problem':
+    return " 1:0 2:1 3:0 4:1 5:0 6:0"
+  if con1 == 'treatment' and con2 == 'treatment':
+    return " 1:0 2:1 3:0 4:0 5:1 6:0"
+  if con1 == 'treatment' and con2 == 'test':
+    return " 1:0 2:1 3:0 4:0 5:0 6:1"
+  
+  if con1 == 'test' and con2 == 'problem':
+    return " 1:0 2:0 3:1 4:1 5:0 6:0"
+  if con1 == 'test' and con2 == 'treatment':
+    return " 1:0 2:0 3:1 4:0 5:1 6:0"
+  if con1 == 'test' and con2 == 'test':
+    return " 1:0 2:0 3:1 4:0 5:0 6:1"
+  
+
 class Model:
   def __init__(self):
     self.name = str(os.getpid()) # Name files will be trained on.
@@ -49,19 +75,25 @@ class Model:
             y = '1'
           else:
             y = '-1'
-          out = (str(y) + " |BT| " + str(x.getParses()[0]) + " |ET|"
-                 + " 1:" + str(_CONS[x.getConcepts()[0].label]) 
-                 + " 2:" + str(_CONS[x.getConcepts()[1].label]) + " |EV|\n")
+          out = (str(y) + " |BT| " + str(x.getEnrichedTree()) + " |ET|"
+                 + hotty(x.getConcepts()[0].label, x.getConcepts()[1].label)
+                 + " |EV|\n")
           f.write(out)
 
-
       subprocess.call([abs_path('../bin/svm-light-TK-1.2.1/svm_learn'), 
-                       '-t', '4', 
-                       '-u', '.5', 
+                       '-t', '5',
+                       '-S', '1',
+                       '-D', '1',
+                       '-r', '1',
+                       '-c', '0.5',
+                       '-d', '2',
+                       '-T', '3.35',
+                       '-N', '3',
+                       '-W', 'S',
                        f_name,
                        f_name.split('.tmp')[0] + '.svm'])
       
-      os.remove(f_name)
+      #os.remove(f_name)
 
     
   def predict(self, X):
@@ -73,9 +105,9 @@ class Model:
     first = True
     with open(f_name, 'w') as f:
       for x in X:
-        out = ("|BT| " + str(x.getParses()[0]) + " |ET|"
-               + " 1:" + str(_CONS[x.getConcepts()[0].label]) 
-               + " 2:" + str(_CONS[x.getConcepts()[1].label]) + " |EV|\n")
+        out = ("|BT| " + str(x.getEnrichedTree()) + " |ET|"
+               + hotty(x.getConcepts()[0].label, x.getConcepts()[1].label)
+               + " |EV|\n")
         f.write(out)
     for label in _LABELS.values():
       m_name = os.path.join(abs_path("../model"), self.name + '.' + label + '.svm')
