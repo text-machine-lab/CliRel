@@ -33,7 +33,6 @@ def main(t_dir, model_path, model_type, v):
   for n in notes:
     entries += n.data    
   labels  = [e.relation.label for e in entries]
-  print labels 
   if (v):
     print "\t%d entries read" % len(entries)
 

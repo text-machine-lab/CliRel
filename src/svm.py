@@ -77,7 +77,7 @@ class Model:
             y = '1'
           else:
             y = '-1'
-          print x.getEnrichedTree(self.mode)
+          #print x.getEnrichedTree(self.mode)
           out = (str(y) + " |BT| " + str(x.getEnrichedTree(self.mode)) + " |ET|"
                  + hotty(x.getConcepts()[0].label, x.getConcepts()[1].label)
                  + " |EV|\n")

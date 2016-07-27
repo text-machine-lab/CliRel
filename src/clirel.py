@@ -35,7 +35,7 @@ def main():
                             concept, rel) containing .txt, .con, .rel files. \
                             Will train a classifier on this data. \
                             Trained model will be written to specified model file.\n \
-                            Current model types:\n\tsvm-spt\n\tsvm-insert\n\tsvm-suffix",
+                            Current model types:[svm-spt, svm-insert, svm-suffix]",
                       default=None)
   parser.add_argument("--predict", nargs=3,
                       metavar=("test_dir", "model_file", "results_dir"), type=str,
