@@ -425,17 +425,19 @@ if __name__ == "__main__":
   entries = list()
   for n in notes:
     entries += n.data
-  par = entries[0].getParses()[0]
+  par = entries[1].getParses()[0]
+  #for each in entries:
+  #  print each.getSentences()
   print par
   print
-  print par.spt(*'coding in units'.split(" "))
-  print
-  print par.insertion(["coding", "units"],["ACTION", "MEASURE"])
-  print par.suffix(["with tests."], ["###"])
+  #print par.spt(*'coding in units'.split(" "))
+  #print
+  #print par.insertion(["coding", "units"],["ACTION", "MEASURE"])
+  #print par.suffix(["with tests."], ["###"])
   print "spt:"
-  print entries[0].getEnrichedTree()
+  print entries[1].getEnrichedTree()
   print "Insertion:"
-  print entries[0].getEnrichedTree('insert')
+  print entries[1].getEnrichedTree('insert')
   print "Suffix"
-  print entries[0].getEnrichedTree('suffix')
+  print entries[1].getEnrichedTree('suffix')
 
