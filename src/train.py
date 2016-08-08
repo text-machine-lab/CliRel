@@ -13,6 +13,7 @@
 
 import sys
 import numpy as np
+from collections import Counter
 
 import note
 import svm
@@ -35,6 +36,12 @@ def main(t_dir, model_path, model_type, v):
   labels  = [e.relation.label for e in entries]
   if (v):
     print "\t%d entries read" % len(entries)
+    counts = Counter()
+    for label in labels:
+      counts[label] += 1
+    for label in set(labels):
+      print "\t%s: %d" % (label, counts[label])
+
 
   # Create Model
   if (v):
