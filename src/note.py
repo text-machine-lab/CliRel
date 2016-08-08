@@ -50,14 +50,14 @@ class ParseTree:
       Returns enriched tree for with inserted label nodes for the specified entities.
     """
     out = deepcopy(self)
-    for e,l in zip(entities, labels):
-      tree = out._spt(out.t,*e.split(" "))
+    for entity, label in zip(entities, labels):
+      tree = out._spt(out.t, entity)
       copy = tree[:]
       while len(tree):
         tree.pop()
       tree.insert(0,copy)
-      tree.insert(0,l)
-    return out
+      tree.insert(0,label)
+    return out.spt(*entities)
 
   def suffix(self, entities, labels):
     """
@@ -65,10 +65,15 @@ class ParseTree:
     """
     out = deepcopy(self)
     for entity, label in zip(entities, labels):
-      t = out._spt(out.t,*entity.split(" "))
+      t = out._spt(out.t, entity)
       out._suffix(t, label)
+    return out.spt(*entities)
 
-    return out
+  def find(self, tree, words):
+    for word in words:
+      if not self._find(tree, word):
+        return False
+    return True
 
   def _spt(self,n,*args):
     p = self._getProduction(n)
@@ -81,7 +86,7 @@ class ParseTree:
     for i in range(len(p[1])):
       flag = True
       for a in args:
-        if not self._find(n[i+1], a):
+        if not self.find(n[i+1], a.split()):
           flag = False
           break
       if flag:
@@ -260,10 +265,10 @@ class Entry:
       self.relation.label = relations[self.relation]
     except KeyError:
       cp = (self.relation.con1.label, self.relation.con2.label)
-      if cp == ('treatment', 'problem'):
+      if cp == ('treatment', 'problem') or cp == ('problem', 'treatment'):
         # No relation between treatment and medical problem.
         self.relation.label = 'NTrP'
-      elif cp == ('test', 'problem'):
+      elif cp == ('test', 'problem') or cp == ('problem', 'test'):
         # No relationship between test and a medical problem.
         self.relation.label = 'NTeP'
       elif cp == ('problem', 'problem'):
@@ -294,7 +299,7 @@ class Entry:
     elif mode == 'suffix':
       return parse.suffix(con_tokens, con_labels)
     else:
-      return parse.spt(*[t for t in [c.split for c in con_tokens]])
+      return parse.spt(*con_tokens)
       
 class Note:
   
@@ -349,9 +354,10 @@ class Note:
           #...     for v2 in a[i+1:]:
           #...             print v1, v2
             for i, concept1 in enumerate(concepts[lineNo]):
-              for concept2 in concepts[lineNo][i+1:]:
-                self.data.add(Entry(Relation(con1=concept1, con2=concept2), self.docName))
-                _sentences[self.docName][concept1.lineNo] = (sent, ParseTree(pars))
+              for j, concept2 in enumerate(concepts[lineNo]):
+                if i != j:
+                  self.data.add(Entry(Relation(con1=concept1, con2=concept2), self.docName))
+                  _sentences[self.docName][concept1.lineNo] = (sent, ParseTree(pars))
             #for concept1 in concepts[lineNo]:
             #  for concept2 in concepts[lineNo]:
             #    if concept1 != concept2:
@@ -421,23 +427,24 @@ def makeNotes(dir, v, train=False):
   return notes
 
 if __name__ == "__main__":
+  NUM = 3
   notes = makeNotes('i2b2_examples/', True, True)
   entries = list()
   for n in notes:
     entries += n.data
-  par = entries[1].getParses()[0]
-  #for each in entries:
-  #  print each.getSentences()
-  print par
-  print
-  #print par.spt(*'coding in units'.split(" "))
-  #print
-  #print par.insertion(["coding", "units"],["ACTION", "MEASURE"])
-  #print par.suffix(["with tests."], ["###"])
-  print "spt:"
-  print entries[1].getEnrichedTree()
-  print "Insertion:"
-  print entries[1].getEnrichedTree('insert')
-  print "Suffix"
-  print entries[1].getEnrichedTree('suffix')
 
+  entry = entries[1] 
+  par = entry.getParses()[0]
+ 
+  for entry in entries:
+#    print entry.getParses()[0]
+#    print "spt:"
+#    print entry.getEnrichedTree()
+#    print "Insertion:"
+#    print entry.getEnrichedTree('insert')
+#    print "Suffix"
+#    print entry.getEnrichedTree('suffix')
+#    print
+#    print
+#    print
+    pass

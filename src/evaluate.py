@@ -77,7 +77,6 @@ def extract_relations(rel_file):
   with open(rel_file, 'r') as f:
     for line in f:
       r = Relation(string=line)
-      #if r.label not in ['NPP','NTeP','NTrP']: 
       results[r] = r.label
 
   return results
