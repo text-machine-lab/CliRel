@@ -37,27 +37,44 @@ from sklearn.cross_validation import KFold
 from sklearn.metrics import f1_score
 
 def hotty(con1, con2):
+  """
   if con1 == 'problem' and con2 == 'problem':
-    return " 1:1 2:0 3:0 4:1 5:0 6:0"
+    #return " 1:0 2:0 3:0 4:1"
+    return " 1:1 4:1"
   if con1 == 'problem' and con2 == 'treatment':
-    return " 1:1 2:0 3:0 4:0 5:1 6:0"
+    #return " 1:1 2:0 3:0 4:0 5:1 6:0"
+    return " 1:1 5:1"
   if con1 == 'problem' and con2 == 'test':
-    return " 1:1 2:0 3:0 4:0 5:0 6:1"
+    #return " 1:1 2:0 3:0 4:0 5:0 6:1"
+    return " 1:1 6:1"
   
   if con1 == 'treatment' and con2 == 'problem':
-    return " 1:0 2:1 3:0 4:1 5:0 6:0"
+    #return " 1:0 2:1 3:0 4:1 5:0 6:0"
+    return " 2:1 4:1"
   if con1 == 'treatment' and con2 == 'treatment':
-    return " 1:0 2:1 3:0 4:0 5:1 6:0"
+    #return " 1:0 2:1 3:0 4:0 5:1 6:0"
+    return " 2:1 5:1"
   if con1 == 'treatment' and con2 == 'test':
-    return " 1:0 2:1 3:0 4:0 5:0 6:1"
+    #return " 1:0 2:1 3:0 4:0 5:0 6:1"
+    return " 2:1 6:1"
   
   if con1 == 'test' and con2 == 'problem':
-    return " 1:0 2:0 3:1 4:1 5:0 6:0"
+    #return " 1:0 2:0 3:1 4:1 5:0 6:0"
+    return " 3:1 4:1"
   if con1 == 'test' and con2 == 'treatment':
-    return " 1:0 2:0 3:1 4:0 5:1 6:0"
+    #return " 1:0 2:0 3:1 4:0 5:1 6:0"
+    return " 3:1 5:1"
   if con1 == 'test' and con2 == 'test':
-    return " 1:0 2:0 3:1 4:0 5:0 6:1"
-  
+    #return " 1:0 2:0 3:1 4:0 5:0 6:1"
+    return " 3:1 6:1"
+  """
+  cons = (con1, con2)
+  if cons == ('test', 'problem') or cons == ('problem', 'test'):
+    return " 1:1 3:1"
+  if cons == ('treatment', 'problem') or cons == ('problem', 'treatment'):
+    return " 2:1 3:1"
+  if cons == ('problem', 'problem'):
+    return " 3:1 4:1"
 
 class Model:
   def __init__(self):
@@ -132,7 +149,10 @@ class Model:
         results = np.concatenate((results,np.array(r_label).reshape(len(r_label),1)),axis=1)
       os.remove(r_name)    
     os.remove(f_name)
-    
+   
+    print "Stats"
+    for i in results:
+      print i
     return [_LABELS[r] for r in results.argmax(axis=1)]
     
               

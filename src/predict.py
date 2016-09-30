@@ -56,5 +56,5 @@ def main(t_dir, model_path, res_dir, v):
 
 if __name__ == "__main__":
   main(abs_path('./i2b2_examples/'), 
-       abs_path('../model/example.mod'), 
+       abs_path('../model/example-suffix.mod'), 
        abs_path('../results/'), True)

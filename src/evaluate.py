@@ -20,7 +20,9 @@ import sys
 import futilities
 from note import Relation
 
+import sklearn.metrics as metrics
 from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix
 from futilities import abs_path
 
 #
@@ -110,9 +112,18 @@ def main(test_dir, gold_dir, results_file, v):
 
   # Calculate Precision and Recall Using true positive, false positive, false
   # negative for relation detection
-  precision = float(total_TP) / (total_TP + total_FP)
-  recall    = float(total_TP) / (total_TP + total_FN)
-  F1        = 2 * (precision * recall) / (precision + recall)
+  if (total_TP+total_FP):
+    precision = float(total_TP) / (total_TP + total_FP)
+  else:
+    precision = 0
+  if (total_TP+total_FN):
+    recall = float(total_TP) / (total_TP + total_FN)
+  else:
+    recall = 0
+  if (precision+recall):
+    F1 = 2 * (precision * recall) / (precision + recall)
+  else:
+    F1 = 0
 
   with open(results_file, "w") as f:
     print >>f, "-" * 80
@@ -127,9 +138,20 @@ def main(test_dir, gold_dir, results_file, v):
     print >>f, "-" * 80
     print >>f, "Classification Statistics:"
     print >>f, ""
-    print >>f, classification_report(total_g_labels, total_p_labels)
+    print >>f, "\tF1:        %.4f" % metrics.f1_score(total_g_labels, total_p_labels, average='micro')
+    print >>f, "\tPrecision: %.4f" % metrics.precision_score(total_g_labels, total_p_labels)
+    print >>f, "\tRecall:    %.4f" % metrics.recall_score(total_g_labels, total_p_labels)
+    print >>f, ""
+    print total_g_labels
+    print total_p_labels
+    print >>f, metrics.confusion_matrix(total_g_labels, total_p_labels)
     print >>f, "-" * 80
     print >>f, ""
+#    x = set(total_g_labels)
+#    x = list(x)
+#    x.sort()
+#    for each in x:
+#      print >>f, each
 
 if __name__ == "__main__":
   main(abs_path("../results/"), 

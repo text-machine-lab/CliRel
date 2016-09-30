@@ -239,11 +239,25 @@ class Relation:
     
 
   def __hash__(self):
-    return hash("%d%d%d%d%d" % ( self.con1.lineNo,
-                                 self.con1.start,
-                                 self.con1.end,
-                                 self.con2.start,
-                                 self.con2.end ))
+    if self.con1.start > self.con2.start:
+      x = [ self.con1.lineNo,
+            self.con1.start,
+            self.con1.end,
+            self.con2.start,
+            self.con2.end ]
+    else: 
+      x = [ self.con1.lineNo,
+            self.con2.start,
+            self.con2.end,
+            self.con1.start,
+            self.con1.end ]
+    return hash("%d%d%d%d%d" % tuple(x))
+
+    #return hash("%d%d%d%d%d" % ( self.con1.lineNo,
+    #                             self.con1.start,
+    #                             self.con1.end,
+    #                             self.con2.start,
+    #                             self.con2.end ))
 
   def getConcepts(self):
     return self.con1, self.con2
@@ -353,11 +367,15 @@ class Note:
           #>>> for i, v1 in enumerate(a):
           #...     for v2 in a[i+1:]:
           #...             print v1, v2
+          #  for i, concept1 in enumerate(concepts[lineNo]):
+          #    for j, concept2 in enumerate(concepts[lineNo]):
+          #      if i != j:
+          #        self.data.add(Entry(Relation(con1=concept1, con2=concept2), self.docName))
+          #        _sentences[self.docName][concept1.lineNo] = (sent, ParseTree(pars))
             for i, concept1 in enumerate(concepts[lineNo]):
-              for j, concept2 in enumerate(concepts[lineNo]):
-                if i != j:
-                  self.data.add(Entry(Relation(con1=concept1, con2=concept2), self.docName))
-                  _sentences[self.docName][concept1.lineNo] = (sent, ParseTree(pars))
+              for concept2 in concepts[lineNo][i+1:]:
+                self.data.add(Entry(Relation(con1=concept1, con2=concept2), self.docName))
+                _sentences[self.docName][concept1.lineNo] = (sent, ParseTree(pars))
             #for concept1 in concepts[lineNo]:
             #  for concept2 in concepts[lineNo]:
             #    if concept1 != concept2:
@@ -437,14 +455,13 @@ if __name__ == "__main__":
   par = entry.getParses()[0]
  
   for entry in entries:
-#    print entry.getParses()[0]
-#    print "spt:"
-#    print entry.getEnrichedTree()
-#    print "Insertion:"
-#    print entry.getEnrichedTree('insert')
-#    print "Suffix"
-#    print entry.getEnrichedTree('suffix')
-#    print
-#    print
-#    print
-    pass
+    print entry.getParses()[0]
+    print "spt:"
+    print entry.getEnrichedTree()
+    print "Insertion:"
+    print entry.getEnrichedTree('insert')
+    print "Suffix"
+    print entry.getEnrichedTree('suffix')
+    print entry.getSentences()[1].strip()
+    print entry.relation.label
+    print
