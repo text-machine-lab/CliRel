@@ -16,6 +16,7 @@ import os
 
 import re
 import numpy as np
+import pandas as pd
 from pandas import DataFrame, Series
 
 def extractConsFromText(line):
@@ -76,6 +77,9 @@ def extractCons(consFile):
     for d2 in data[i+1:]:
       if d1[0] == d2[0]:
         out.append(d1 + d2[1:])
+  # No concept pairs
+  if len(out) == 0:
+    return None
   out = DataFrame(out, columns = ["lineNum", 
                                     "conStart1",
                                     "conEnd1",
@@ -141,7 +145,10 @@ def extractRels(relFile):
   with open(relFile, 'r') as f:
     for line in f:
       data.append(extractRelFromText(line))
-  
+  # Handling empty dataframe
+  if len(data) == 0:
+    return None
+
   out = DataFrame(data, columns = ["lineNum", 
                                    "conStart1",
                                    "conEnd1",
@@ -158,12 +165,12 @@ def extractTxts(txtFile):
     Takes a relation file and returns a panda datatable.
 
     >>> print extractTxts('./i2b2_examples/txt/health.txt').ix[0]
-    lineNum                                             0
+    lineNum                                             1
     text        This treatment improves medical problem .
     fileName                                       health
     Name: 0, dtype: object
     >>> print extractTxts('./i2b2_examples/txt/health.txt').ix[1]
-    lineNum                                       1
+    lineNum                                       2
     text        Treatment worsens medical problem .
     fileName                                 health
     Name: 1, dtype: object
@@ -172,7 +179,7 @@ def extractTxts(txtFile):
 
   with open(txtFile, 'r') as f:
     for i, line in enumerate(f):
-      data.append((i, line.strip()))
+      data.append((i+1, line.strip()))
   
   out = DataFrame(data, columns = ["lineNum", 
                                    "text"])
@@ -185,39 +192,45 @@ def createTraining(cFile, tFile, rFile):
     data into a single dataframe.
 
     >>> print createTraining('./i2b2_examples/concept/health.con', './i2b2_examples/txt/health.txt', './i2b2_examples/rel/health.rel').ix[0]
-    conEnd1                                              1
-    conEnd2                                              4
-    conStart1                                            0
-    conStart2                                            3
-    conText1                                This treatment
-    conText2                               medical problem
-    conType1                                     treatment
-    conType2                                       problem
-    fileName                                        health
     lineNum                                              1
+    conStart1                                            0
+    conEnd1                                              1
+    conType1                                     treatment
+    conText1                                This treatment
+    conStart2                                            3
+    conEnd2                                              4
+    conType2                                       problem
+    conText2                               medical problem
+    fileName                                        health
     relType                                           TrIP
     text         This treatment improves medical problem .
     Name: 0, dtype: object
     >>> print createTraining('./i2b2_examples/concept/health.con', './i2b2_examples/txt/health.txt', './i2b2_examples/rel/health.rel').ix[1]
-    conEnd1                                        0
-    conEnd2                                        3
-    conStart1                                      0
-    conStart2                                      2
-    conText1                               Treatment
-    conText2                         medical problem
-    conType1                               treatment
-    conType2                                 problem
-    fileName                                  health
     lineNum                                        2
+    conStart1                                      0
+    conEnd1                                        0
+    conType1                               treatment
+    conText1                               Treatment
+    conStart2                                      2
+    conEnd2                                        3
+    conType2                                 problem
+    conText2                         medical problem
+    fileName                                  health
     relType                                     TrWP
     text         Treatment worsens medical problem .
     Name: 1, dtype: object
-
   """
   concepts  = extractCons(cFile)
+  # Handling empty concept pairs (Relations need two concepts)
+  if type(concepts) == type(None):
+    return None
   text      = extractTxts(tFile)
   relations = extractRels(rFile)
-  return concepts.combine_first(relations).combine_first(text)
+  # Handling empty relations
+  if type(relations) == type(None):
+    return None
+
+  return pd.merge(pd.merge(concepts, relations, how='outer'), text, how='left')
 
 def createTesting(cFile, tFile):
   """
@@ -225,41 +238,43 @@ def createTesting(cFile, tFile):
     data into a single dataframe.
 
     >>> print createTesting('./i2b2_examples/concept/health.con', './i2b2_examples/txt/health.txt').ix[0]
-    conEnd1                                              1
-    conEnd2                                              4
-    conStart1                                            0
-    conStart2                                            3
-    conText1                                This treatment
-    conText2                               medical problem
-    conType1                                     treatment
-    conType2                                       problem
-    fileName                                        health
     lineNum                                              1
+    conStart1                                            0
+    conEnd1                                              1
+    conType1                                     treatment
+    conText1                                This treatment
+    conStart2                                            3
+    conEnd2                                              4
+    conType2                                       problem
+    conText2                               medical problem
+    fileName                                        health
     relType                                            NaN
     text         This treatment improves medical problem .
     Name: 0, dtype: object
     >>> print createTesting('./i2b2_examples/concept/health.con', './i2b2_examples/txt/health.txt').ix[1]
-    conEnd1                                        0
-    conEnd2                                        3
-    conStart1                                      0
-    conStart2                                      2
-    conText1                               Treatment
-    conText2                         medical problem
-    conType1                               treatment
-    conType2                                 problem
-    fileName                                  health
     lineNum                                        2
+    conStart1                                      0
+    conEnd1                                        0
+    conType1                               treatment
+    conText1                               Treatment
+    conStart2                                      2
+    conEnd2                                        3
+    conType2                                 problem
+    conText2                         medical problem
+    fileName                                  health
     relType                                      NaN
     text         Treatment worsens medical problem .
     Name: 1, dtype: object
-
   """
   concepts = extractCons(cFile)
+  # Handling empty concept pairs (Relations need two concepts)
+  if type(concepts) == type(None):
+    return None
   concepts["relType"] = np.nan
   
   text = extractTxts(tFile)
   
-  return concepts.combine_first(text)
+  return pd.merge(concepts, text, how='left')
 
 def filterFiles(d, extension):
   """ 
@@ -325,12 +340,18 @@ def createEntries(c_dir, t_dir, r_dir=None):
     rel = filterFiles(r_dir, 'rel')
 
     for t,c,r in zip(txt, con, rel):
-      entries = entries.append(createTraining(c, t, r), ignore_index=True)
+      entry = createTraining(c, t, r)
+      if type(entry) != type(None):
+        entries = entries.append(entry, ignore_index=True)
   else:
     for t,c in zip(txt, con):
-      entries = entries.append(createTesting(c, t), ignore_index=True)
+      entry = createTesting(c, t)
+      if type(entry) != type(None):
+        entries = entries.append(entry, ignore_index=True)
   return entries
 
 if __name__ == "__main__":
   import doctest
   doctest.testmod()
+
+
