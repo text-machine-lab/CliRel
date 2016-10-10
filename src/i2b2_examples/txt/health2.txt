@@ -1,0 +1,11 @@
+This treatment improves medical problem .
+Treatment worsens medical problem .
+Treatment causes medical problem .
+The treatment is administered for medical problem .
+Treatment is not administered because of medical problem .
+There were many symptoms , but test reveals medical problem .
+The great tests conducted to investigate medical problem .
+Medical problem indicated medical problem  ; which is really important .
+The great tests conducted to investigate medical problem . VOID
+Medical problem indicated medical problem  ; which is really important . VOID
+This treatment improves medical problem . VOID

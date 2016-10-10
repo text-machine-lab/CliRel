@@ -12,7 +12,10 @@
             label. The entries are indexed by filename and line number.
 """
 
+import os
+
 import re
+import numpy as np
 from pandas import DataFrame, Series
 
 def extractConsFromText(line):
@@ -38,28 +41,28 @@ def extractCons(consFile):
     Where every entry is a pair of concepts.
 
     >>> print extractCons('./i2b2_examples/concept/health.con').ix[0]
-    lineNum                                       1
-    conStart1                                     0
-    conEnd1                                       1
-    conType1                              treatment
-    conText1                         This treatment
-    conStart2                                     3
-    conEnd2                                       4
-    conType2                                problem
-    conText2                        medical problem
-    fileName     ./i2b2_examples/concept/health.con
+    lineNum                    1
+    conStart1                  0
+    conEnd1                    1
+    conType1           treatment
+    conText1      This treatment
+    conStart2                  3
+    conEnd2                    4
+    conType2             problem
+    conText2     medical problem
+    fileName              health
     Name: 0, dtype: object
     >>> print extractCons('./i2b2_examples/concept/health.con').ix[1]
-    lineNum                                       2
-    conStart1                                     0
-    conEnd1                                       0
-    conType1                              treatment
-    conText1                              Treatment
-    conStart2                                     2
-    conEnd2                                       3
-    conType2                                problem
-    conText2                        medical problem
-    fileName     ./i2b2_examples/concept/health.con
+    lineNum                    2
+    conStart1                  0
+    conEnd1                    0
+    conType1           treatment
+    conText1           Treatment
+    conStart2                  2
+    conEnd2                    3
+    conType2             problem
+    conText2     medical problem
+    fileName              health
     Name: 1, dtype: object
   """
   data = list()
@@ -82,7 +85,7 @@ def extractCons(consFile):
                                     "conEnd2",
                                     "conType2",
                                     "conText2"])
-  out['fileName'] = consFile
+  out['fileName'] = os.path.basename(consFile).split(".")[0]
   return out
 
 def extractRelFromText(line):
@@ -111,26 +114,26 @@ def extractRels(relFile):
     Takes a relation file and returns a panda datatable.
 
     >>> print extractRels('./i2b2_examples/rel/health.rel').ix[0]
-    lineNum                                   1
-    conStart1                                 0
-    conEnd1                                   1
-    conText1                     This treatment
-    conStart2                                 3
-    conEnd2                                   4
-    conText2                    medical problem
-    relType                                TrIP
-    fileName     ./i2b2_examples/rel/health.rel
+    lineNum                    1
+    conStart1                  0
+    conEnd1                    1
+    conText1      This treatment
+    conStart2                  3
+    conEnd2                    4
+    conText2     medical problem
+    relType                 TrIP
+    fileName              health
     Name: 0, dtype: object
     >>> print extractRels('./i2b2_examples/rel/health.rel').ix[1]
-    lineNum                                   2
-    conStart1                                 0
-    conEnd1                                   0
-    conText1                          Treatment
-    conStart2                                 2
-    conEnd2                                   3
-    conText2                    medical problem
-    relType                                TrWP
-    fileName     ./i2b2_examples/rel/health.rel
+    lineNum                    2
+    conStart1                  0
+    conEnd1                    0
+    conText1           Treatment
+    conStart2                  2
+    conEnd2                    3
+    conText2     medical problem
+    relType                 TrWP
+    fileName              health
     Name: 1, dtype: object
   """
   data = list()
@@ -147,7 +150,7 @@ def extractRels(relFile):
                                    "conEnd2",
                                    "conText2",
                                    "relType"])
-  out['fileName'] = relFile
+  out['fileName'] = os.path.basename(relFile).split(".")[0]
   return out
 
 def extractTxts(txtFile):
@@ -157,12 +160,12 @@ def extractTxts(txtFile):
     >>> print extractTxts('./i2b2_examples/txt/health.txt').ix[0]
     lineNum                                             0
     text        This treatment improves medical problem .
-    fileName               ./i2b2_examples/txt/health.txt
+    fileName                                       health
     Name: 0, dtype: object
     >>> print extractTxts('./i2b2_examples/txt/health.txt').ix[1]
     lineNum                                       1
     text        Treatment worsens medical problem .
-    fileName         ./i2b2_examples/txt/health.txt
+    fileName                                 health
     Name: 1, dtype: object
   """
   data = list()
@@ -173,7 +176,7 @@ def extractTxts(txtFile):
   
   out = DataFrame(data, columns = ["lineNum", 
                                    "text"])
-  out['fileName'] = txtFile
+  out['fileName'] = os.path.basename(txtFile).split(".")[0]
   return out
 
 def createTraining(cFile, tFile, rFile):
@@ -190,7 +193,7 @@ def createTraining(cFile, tFile, rFile):
     conText2                               medical problem
     conType1                                     treatment
     conType2                                       problem
-    fileName            ./i2b2_examples/concept/health.con
+    fileName                                        health
     lineNum                                              1
     relType                                           TrIP
     text         This treatment improves medical problem .
@@ -204,7 +207,7 @@ def createTraining(cFile, tFile, rFile):
     conText2                         medical problem
     conType1                               treatment
     conType2                                 problem
-    fileName      ./i2b2_examples/concept/health.con
+    fileName                                  health
     lineNum                                        2
     relType                                     TrWP
     text         Treatment worsens medical problem .
@@ -216,26 +219,118 @@ def createTraining(cFile, tFile, rFile):
   relations = extractRels(rFile)
   return concepts.combine_first(relations).combine_first(text)
 
+def createTesting(cFile, tFile):
+  """
+    Given the concepts, text and relation files, consilidate that
+    data into a single dataframe.
+
+    >>> print createTesting('./i2b2_examples/concept/health.con', './i2b2_examples/txt/health.txt').ix[0]
+    conEnd1                                              1
+    conEnd2                                              4
+    conStart1                                            0
+    conStart2                                            3
+    conText1                                This treatment
+    conText2                               medical problem
+    conType1                                     treatment
+    conType2                                       problem
+    fileName                                        health
+    lineNum                                              1
+    relType                                            NaN
+    text         This treatment improves medical problem .
+    Name: 0, dtype: object
+    >>> print createTesting('./i2b2_examples/concept/health.con', './i2b2_examples/txt/health.txt').ix[1]
+    conEnd1                                        0
+    conEnd2                                        3
+    conStart1                                      0
+    conStart2                                      2
+    conText1                               Treatment
+    conText2                         medical problem
+    conType1                               treatment
+    conType2                                 problem
+    fileName                                  health
+    lineNum                                        2
+    relType                                      NaN
+    text         Treatment worsens medical problem .
+    Name: 1, dtype: object
+
+  """
+  concepts = extractCons(cFile)
+  concepts["relType"] = np.nan
+  
+  text = extractTxts(tFile)
+  
+  return concepts.combine_first(text)
+
+def filterFiles(d, extension):
+  """ 
+    Only list files with the specified extension
+    Helper for create Entries
+    >>> filterFiles('./i2b2_examples/txt', 'txt')
+    ['./i2b2_examples/txt/health.txt', './i2b2_examples/txt/health2.txt']
+    >>> filterFiles('./i2b2_examples/concept', 'con')
+    ['./i2b2_examples/concept/health.con', './i2b2_examples/concept/health2.con']
+  """
+  files = list()
+  for f in os.listdir(d):
+    if f.endswith(extension):
+      files.append(os.path.join(d, f))
+
+  files.sort()
+
+  return files
+
+def createEntries(c_dir, t_dir, r_dir=None):
+  """
+    Creates a complete table of data from the files in the given directories.
+    i2b2_examples contains two files that each have 11 entries.
+    >>> createEntries('./i2b2_examples/concept', './i2b2_examples/txt/').shape
+    (22, 12)
+    >>> createEntries('./i2b2_examples/concept', './i2b2_examples/txt/').ix[0]
+    conEnd1                                              1
+    conEnd2                                              4
+    conStart1                                            0
+    conStart2                                            3
+    conText1                                This treatment
+    conText2                               medical problem
+    conType1                                     treatment
+    conType2                                       problem
+    fileName                                        health
+    lineNum                                              1
+    relType                                            NaN
+    text         This treatment improves medical problem .
+    Name: 0, dtype: object
+    >>> createEntries('./i2b2_examples/concept', './i2b2_examples/txt/', './i2b2_examples/rel/').shape
+    (22, 12)
+    >>> createEntries('./i2b2_examples/concept', './i2b2_examples/txt/', './i2b2_examples/rel/').ix[0]
+    conEnd1                                              1
+    conEnd2                                              4
+    conStart1                                            0
+    conStart2                                            3
+    conText1                                This treatment
+    conText2                               medical problem
+    conType1                                     treatment
+    conType2                                       problem
+    fileName                                        health
+    lineNum                                              1
+    relType                                           TrIP
+    text         This treatment improves medical problem .
+    Name: 0, dtype: object
+  """
+  entries = DataFrame()
+
+  txt = filterFiles(t_dir, 'txt')
+  con = filterFiles(c_dir, 'con')
+  
+  if r_dir:
+    rel = filterFiles(r_dir, 'rel')
+
+    for t,c,r in zip(txt, con, rel):
+      entries = entries.append(createTraining(c, t, r), ignore_index=True)
+  else:
+    for t,c in zip(txt, con):
+      entries = entries.append(createTesting(c, t), ignore_index=True)
+  return entries
+
 if __name__ == "__main__":
   import doctest
   doctest.testmod()
-  data = createTraining('./i2b2_examples/concept/health.con', './i2b2_examples/txt/health.txt', './i2b2_examples/rel/health.rel')
-
-  def printData(x):
-    print x
-    raw_input("")
-  
-  import numpy as np
-  import pandas as pd
-
-  def genNeg(x):
-    if not pd.isnull(x.relType):
-      return x.relType
-
-    return 'Banana'
-
-
-  data['relType'] = data.apply(genNeg, axis=1)
-  data.apply(printData, axis=1)
-
-
