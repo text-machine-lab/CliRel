@@ -3,58 +3,54 @@
 
  File Name : predict.py
 
- Creation Date : 15-06-2016
+ Creation Date : 10-10-2016
 
  Created By : Renan Campos
 
- Purpose : Prediction script
+ Purpose : Creates relation labesl for the data given the model.
 
 """
 
-import sys
-import numpy as np
+import os
+import imp
+from note import createEntries
 
-
-import note 
-import svm as ml
-from futilities import abs_path
-
-def main(t_dir, model_path, res_dir, v):
+# Take in data dir and model type
+# Load in model's train
+# Save model
+# return the model
+def main(t_dir, model_path, model_flags=None):
   """
-    Extract files from the test directory and make a note instance for each
-    Predict a label for each entry in the given notes
+    Output should be the data with labels. 
+    For the example model, the new labels are all !
+    >>> main('i2b2_examples/', 'model_example/').ix[0]
+    conEnd1                                              1
+    conEnd2                                              4
+    conStart1                                            0
+    conStart2                                            3
+    conText1                                This treatment
+    conText2                               medical problem
+    conType1                                     treatment
+    conType2                                       problem
+    fileName                                        health
+    lineNum                                              1
+    relType                                              !
+    text         This treatment improves medical problem .
+    Name: 0, dtype: object
   """
+  con = os.path.join(t_dir, 'concept')
+  txt = os.path.join(t_dir, 'txt')
+  data = createEntries(con, txt)
 
-  # Create notes
-  if (v):
-    sys.stdout.write("Begin testing\n\tCreating notes...\n")
-  notes = note.makeNotes(t_dir, v)
+  # import the model.
+  # The model will be loaded as a module. This provides modularity for the
+  # assumption that the model is implemented with a 'model.py' in its main dir. 
+  model = imp.load_module('model', *imp.find_module('model', [model_path]))
 
-  entries = list()
-  for n in notes:
-    entries += n.data
+  out =  model.predict(data, model_flags)
+  data["relType"] = out
+  return data
 
-  # Load model
-  if (v):
-    sys.stdout.write("\tLoading model from %s...\n" % model_path)
-  model = ml.Model()
-  model.load(model_path)
-
-  # Predict Labels
-  if (v):
-    sys.stdout.write("\tPredicting labels...\n")
-  labels = model.predict(entries)
-
-  for e, label in zip(entries, labels):
-    e.relation.label = label
-
-  # Write labels to files
-  if (v):
-    sys.stdout.write("\tWriting relation files in %s directory...\n" % res_dir)
-  for n in notes:
-    n.write(res_dir)
-
-if __name__ == "__main__":
-  main(abs_path('./i2b2_examples/'), 
-       abs_path('../model/example-suffix.mod'), 
-       abs_path('../results/'), True)
+if __name__ == '__main__':
+  import doctest
+  doctest.testmod()
