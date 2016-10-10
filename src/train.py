@@ -1,74 +1,43 @@
 """ 
  Text-Machine Lab: CliRel
 
- File Name : train.py
+ File Name :
 
- Creation Date : 15-06-2016
+ Creation Date : 10-10-2016
 
  Created By : Renan Campos
-
- Purpose : Training Script.
+ 
+ Purpose : Trains a specified model on the given data.
 
 """
+import os
+import imp
+from note import createEntries
 
-import sys
-import numpy as np
-from collections import Counter
-
-import note
-import svm
-from futilities import abs_path
-
-def main(t_dir, model_path, model_type, v):
+# Take in data dir and model type
+# Load in model's train
+# Save model
+# return the model
+def main(t_dir, model_path, model_flags=None):
   """
-     Extract files from the training directory and make a note instance for each
-     Train a model the given notes. 
+    >>> main('i2b2_examples/', 'model_example/')
+    'Example model success.'
+    >>> main('i2b2_examples/', 'model_example/', ['a', 'b'])
+    'Example model success with flags a b.'
   """
- 
-  # Create notes
-  if (v):
-    sys.stdout.write("Begin Training\n\tCreating notes...\n")
-  notes = note.makeNotes(t_dir, v, True)
-  
-  entries = list()
-  for n in notes:
-    entries += n.data    
-  labels  = [e.relation.label for e in entries]
-  if (v):
-    print "\t%d entries read" % len(entries)
-    counts = Counter()
-    for label in labels:
-      counts[label] += 1
-    for label in set(labels):
-      print "\t%s: %d" % (label, counts[label])
+  con = os.path.join(t_dir, 'concept')
+  txt = os.path.join(t_dir, 'txt')
+  rel = os.path.join(t_dir, 'rel')
 
+  data = createEntries(con, txt, rel)
 
-  # Create Model
-  if (v):
-    sys.stdout.write("\tCreating model...\n")
-  
-  if model_type == 'svm-spt':
-    svm.MODE = 'spt'
-    ml = svm
-  elif model_type == 'svm-insert':
-    svm.MODE = 'insert'
-    ml = svm
-  elif model_type == 'svm-suffix':
-    svm.MODE = 'suffix'
-    ml = svm
-  else:
-    sys.stderr.write("ERROR: Invalid model type.\n")
-    sys.exit(1)
-  
-  model = ml.Model()
-  model.train(entries, labels)
+  # import the model.
+  # The model will be loaded as a module. This provides modularity for the
+  # assumption that the model is implemented with a 'model.py' in its main dir. 
+  model = imp.load_module('model', *imp.find_module('model', [model_path]))
 
-  # Save model for later use
-  if (v):
-    sys.stdout.write("\tPickling model to %s...\n" % model_path)
-  model.save(model_path)
+  return model.train(data, model_flags)
 
-if __name__ == "__main__":
-  main(abs_path('./i2b2_examples/'), abs_path('../model/example-spt.mod'), 'svm-spt', True)
-  main(abs_path('./i2b2_examples/'), abs_path('../model/example-insert.mod'), 'svm-insert', True)
-  main(abs_path('./i2b2_examples/'), abs_path('../model/example-suffix.mod'), 'svm-suffix', True)
+if __name__ == '__main__':
+  import doctest
+  doctest.testmod()
