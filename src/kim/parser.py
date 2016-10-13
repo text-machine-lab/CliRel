@@ -1,7 +1,7 @@
 """ 
  Text-Machine Lab: CliRel
 
- File Name :
+ File Name : parser.py
 
  Creation Date : 11-10-2016
 
@@ -29,6 +29,8 @@ class BerkeleyParser:
 
   def parse(self, s):
     p = self.p
+    # Replace parantheses with special token (to make parsing easier).
+    s = s.replace('(','<LPAR>').replace(')', '<RPAR>')
     p.stdin.write(s + '\n')
     return read(p.stdout.fileno(), 1024)
 
