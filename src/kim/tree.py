@@ -80,14 +80,43 @@ def createString(tree):
 
   return out + ')'
  
-def spt(tree, a, b):
+def spt(tree, conStart1, conEnd2, m=None, c=0):
   """
-    Finds the shortest path tree between tokens a and b.
-    >>> spt(createTree(test0), 'is', 'sentence')
-    ['VP', ['VBZ' 'is'], ['NP', ['DT', 'a'], ['NN', 'test'], ['NN', 'sentence']]]
+    Finds the smallest subtree that still contains the two token ranges.
+    The challenge occurs when the two tokens are equal, or substrings of one another..
+    >>> spt(createTree(test0), 1, 4)
+    ['VP', ['VBZ', 'is'], ['NP', ['DT', 'a'], ['NN', 'test'], ['NN', 'sentence']]]
+    >>> spt(createTree(test8), 0, 4)
+    ['S', ['OO', ['JJ', 'medical'], ['NN', 'problem']], ['VP', ['VBD', 'indicated'], ['NP', ['NP', ['JJ', 'medical'], ['NN', 'problem']], [':', ';'], ['SBAR', ['WHNP', ['WDT', 'which']], ['S', ['VP', ['VBZ', 'is'], ['ADJP', ['RB', 'really'], ['JJ', 'important']]]]]]], ['.', '.']]
+    >>> spt(createTree(test8), 0, 1)
+    ['OO', ['JJ', 'medical'], ['NN', 'problem']]
+    >>> spt(createTree(test8), 3, 4)
+    ['NP', ['JJ', 'medical'], ['NN', 'problem']]
   """
+  out = tree
+  
+  if m == None:
+    # Create a mapping from tokens to id
+    m = getLeaves(tree).split()
+    # Determine number of times substring will occur before the correct subtree
+    c1 = getLeaves(tree).count(' '.join(m[conStart1:conEnd2+1]))
+    c2 = ' '.join(getLeaves(tree).split()[conStart1:]).count(' '.join(m[conStart1:conEnd2+1]))
+    c = c1 - c2
+  
+  curr = c
+  want_s = ' '.join(m[conStart1:conEnd2+1])
 
-  return None
+  for child in tree[1:]:
+    if type(child) == str:
+      continue
+
+    if want_s in getLeaves(child):
+      if curr == 0:
+        return spt(child, conStart1, conEnd2, m, curr)
+      out = spt(child, conStart1, conEnd2, m, c)
+      curr -= 1
+
+  return out
 
 if __name__ == '__main__':
   test0 = '(S (NP (DT This)) (VP (VBZ is) (NP (DT a) (NN test) (NN sentence))) (. .))'
@@ -98,9 +127,15 @@ if __name__ == '__main__':
   test5 = '(S (NP (NNP Treatment)) (VP (VBZ is) (RB not) (VP (VBN administered) (PP (IN because) (IN of) (NP (JJ medical) (NN problem))))) (. .))'
   test6 = '(S (S (NP (EX There)) (VP (VBD were) (NP (JJ many) (NNS symptoms)))) (, ,) (CC but) (S (NP (NN test)) (VP (VBZ reveals) (NP (JJ medical) (NN problem)))) (. .))'
   test7 = '(S (NP (DT The) (JJ great) (NNS tests)) (VP (VBD conducted) (S (VP (TO to) (VP (VB investigate) (NP (JJ medical) (NN problem)))))) (. .))'
-  test8 = '(S (NP (JJ Medical) (NN problem)) (VP (VBD indicated) (NP (NP (JJ medical) (NN problem)) (: ;) (SBAR (WHNP (WDT which)) (S (VP (VBZ is) (ADJP (RB really) (JJ important))))))) (. .))'
+  test8 = '(S (OO (JJ medical) (NN problem)) (VP (VBD indicated) (NP (NP (JJ medical) (NN problem)) (: ;) (SBAR (WHNP (WDT which)) (S (VP (VBZ is) (ADJP (RB really) (JJ important))))))) (. .))'
   test9 = '(NP (NP (NP (DT The) (JJ great) (NNS tests)) (VP (VBD conducted) (S (VP (TO to) (VP (VB investigate) (NP (JJ medical) (NN problem)))))) (. .)) (NNP VOID))'
   test10 = '(FRAG (NP (JJ Medical) (NN problem) (VBN indicated) (JJ medical) (NN problem)) (: ;) (SBAR (WHNP (WDT which)) (S (VP (VBZ is) (ADJP (RB really) (JJ important))))) (. .) (NP (NNP VOID)))'
   test11 = '(S (NP (DT This) (NN treatment)) (VP (VBZ improves) (NP (JJ medical) (NN problem) (. .) (NNP VOID))))'
   import doctest
   doctest.testmod()
+  
+
+  #t = createTree(test8)
+  #print t
+  #spt(t, 0, 1)[0] = 'TEST'
+  #print t
