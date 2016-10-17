@@ -16,6 +16,8 @@
 import re
 tree_ex = re.compile(r"([^\(\) ]+)")
 
+from copy import deepcopy
+
 def createTree(s):
   """
     Takes a string and creates a list representation
@@ -118,6 +120,62 @@ def spt(tree, conStart1, conEnd2, m=None, c=0):
 
   return out
 
+#TODO suffix and insert.
+def insert(tree, conStart1, conEnd1, conType1,
+                 conStart2, conEnd2, conType2):
+  """
+    Inserts a node in front of the subtree containing each concept type.
+    >>> insert(createTree(test0), 1, 1, 'IS', 3, 4, 'TEST')
+    ['VP', ['IS', ['VBZ', 'is']], ['TEST', ['NP', ['DT', 'a'], ['NN', 'test'], ['NN', 'sentence']]]]
+    >>> insert(createTree(test8), 0, 1, 'PROBLEM', 3, 4, 'PROBLEM')
+    ['S', ['PROBLEM', ['OO', ['JJ', 'medical'], ['NN', 'problem']]], ['VP', ['VBD', 'indicated'], ['NP', ['PROBLEM', ['NP', ['JJ', 'medical'], ['NN', 'problem']]], [':', ';'], ['SBAR', ['WHNP', ['WDT', 'which']], ['S', ['VP', ['VBZ', 'is'], ['ADJP', ['RB', 'really'], ['JJ', 'important']]]]]]], ['.', '.']]
+  """
+  out = spt(tree, conStart1, conEnd2)
+  t1  = spt(tree, conStart1, conEnd1)
+  t2  = spt(tree, conStart2, conEnd2)
+
+  # Insertion
+  t1.append(deepcopy(t1))
+  del t1[:-1]
+  t1.insert(0, conType1)
+
+  t2.append(deepcopy(t2))
+  del t2[:-1]
+  t2.insert(0, conType2)
+
+  return out
+
+def suffix(tree, conStart1, conEnd1, conType1,
+                 conStart2, conEnd2, conType2):
+  """
+    Suffixes the label in front of every node in the subtree.
+    >>> suffix(createTree(test0), 1, 1, 'IS', 3, 4, 'TEST')
+    ['VP', ['VBZ-IS', 'is'], ['NP-TEST', ['DT-TEST', 'a'], ['NN-TEST', 'test'], ['NN-TEST', 'sentence']]]
+    >>> suffix(createTree(test8), 0, 1, 'PROBLEM', 3, 4, 'PROBLEM')
+    ['S', ['OO-PROBLEM', ['JJ-PROBLEM', 'medical'], ['NN-PROBLEM', 'problem']], ['VP', ['VBD', 'indicated'], ['NP', ['NP-PROBLEM', ['JJ-PROBLEM', 'medical'], ['NN-PROBLEM', 'problem']], [':', ';'], ['SBAR', ['WHNP', ['WDT', 'which']], ['S', ['VP', ['VBZ', 'is'], ['ADJP', ['RB', 'really'], ['JJ', 'important']]]]]]], ['.', '.']]
+  """
+  out = spt(tree, conStart1, conEnd2)
+  t1  = spt(tree, conStart1, conEnd1)
+  t2  = spt(tree, conStart2, conEnd2)
+
+  # Suffix
+  _suffix(t1, conType1)
+  _suffix(t2, conType2)
+  
+  return out
+
+def _suffix(t, conType):
+  """
+    Helper for suffix, adds string to each label.
+  """
+  if len(t) == 0:
+    return
+  t[0] = t[0] + '-' + conType
+  for child in t[1:]:
+    if type(child) == list:
+      _suffix(child, conType)
+  return
+
 if __name__ == '__main__':
   test0 = '(S (NP (DT This)) (VP (VBZ is) (NP (DT a) (NN test) (NN sentence))) (. .))'
   test1 = '(S (NP (DT This) (NN treatment)) (VP (VBZ improves) (NP (JJ medical) (NN problem))) (. .))'
@@ -133,9 +191,4 @@ if __name__ == '__main__':
   test11 = '(S (NP (DT This) (NN treatment)) (VP (VBZ improves) (NP (JJ medical) (NN problem) (. .) (NNP VOID))))'
   import doctest
   doctest.testmod()
-  
 
-  #t = createTree(test8)
-  #print t
-  #spt(t, 0, 1)[0] = 'TEST'
-  #print t
