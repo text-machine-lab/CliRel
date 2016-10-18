@@ -120,15 +120,14 @@ def spt(tree, conStart1, conEnd2, m=None, c=0):
 
   return out
 
-#TODO suffix and insert.
 def insert(tree, conStart1, conEnd1, conType1,
                  conStart2, conEnd2, conType2):
   """
     Inserts a node in front of the subtree containing each concept type.
     >>> insert(createTree(test0), 1, 1, 'IS', 3, 4, 'TEST')
     ['VP', ['IS', ['VBZ', 'is']], ['TEST', ['NP', ['DT', 'a'], ['NN', 'test'], ['NN', 'sentence']]]]
-    >>> insert(createTree(test8), 0, 1, 'PROBLEM', 3, 4, 'PROBLEM')
-    ['S', ['PROBLEM', ['OO', ['JJ', 'medical'], ['NN', 'problem']]], ['VP', ['VBD', 'indicated'], ['NP', ['PROBLEM', ['NP', ['JJ', 'medical'], ['NN', 'problem']]], [':', ';'], ['SBAR', ['WHNP', ['WDT', 'which']], ['S', ['VP', ['VBZ', 'is'], ['ADJP', ['RB', 'really'], ['JJ', 'important']]]]]]], ['.', '.']]
+    >>> insert(createTree(test8), 0, 1, 'PROBLEM1', 3, 4, 'PROBLEM2')
+    ['S', ['PROBLEM1', ['OO', ['JJ', 'medical'], ['NN', 'problem']]], ['VP', ['VBD', 'indicated'], ['NP', ['PROBLEM2', ['NP', ['JJ', 'medical'], ['NN', 'problem']]], [':', ';'], ['SBAR', ['WHNP', ['WDT', 'which']], ['S', ['VP', ['VBZ', 'is'], ['ADJP', ['RB', 'really'], ['JJ', 'important']]]]]]], ['.', '.']]
   """
   out = spt(tree, conStart1, conEnd2)
   t1  = spt(tree, conStart1, conEnd1)
@@ -151,8 +150,8 @@ def suffix(tree, conStart1, conEnd1, conType1,
     Suffixes the label in front of every node in the subtree.
     >>> suffix(createTree(test0), 1, 1, 'IS', 3, 4, 'TEST')
     ['VP', ['VBZ-IS', 'is'], ['NP-TEST', ['DT-TEST', 'a'], ['NN-TEST', 'test'], ['NN-TEST', 'sentence']]]
-    >>> suffix(createTree(test8), 0, 1, 'PROBLEM', 3, 4, 'PROBLEM')
-    ['S', ['OO-PROBLEM', ['JJ-PROBLEM', 'medical'], ['NN-PROBLEM', 'problem']], ['VP', ['VBD', 'indicated'], ['NP', ['NP-PROBLEM', ['JJ-PROBLEM', 'medical'], ['NN-PROBLEM', 'problem']], [':', ';'], ['SBAR', ['WHNP', ['WDT', 'which']], ['S', ['VP', ['VBZ', 'is'], ['ADJP', ['RB', 'really'], ['JJ', 'important']]]]]]], ['.', '.']]
+    >>> suffix(createTree(test8), 0, 1, 'PROBLEM1', 3, 4, 'PROBLEM2')
+    ['S', ['OO-PROBLEM1', ['JJ-PROBLEM1', 'medical'], ['NN-PROBLEM1', 'problem']], ['VP', ['VBD', 'indicated'], ['NP', ['NP-PROBLEM2', ['JJ-PROBLEM2', 'medical'], ['NN-PROBLEM2', 'problem']], [':', ';'], ['SBAR', ['WHNP', ['WDT', 'which']], ['S', ['VP', ['VBZ', 'is'], ['ADJP', ['RB', 'really'], ['JJ', 'important']]]]]]], ['.', '.']]
   """
   out = spt(tree, conStart1, conEnd2)
   t1  = spt(tree, conStart1, conEnd1)

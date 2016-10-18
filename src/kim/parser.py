@@ -11,19 +11,24 @@
 
 """
 
+import os
 from subprocess import Popen, PIPE
 from time import sleep
 from fcntl import fcntl, F_GETFL, F_SETFL
 from os import O_NONBLOCK, read
+
+def absPath(path):
+  """ Return absolute path from where this file is located """
+  return os.path.join(os.path.dirname(os.path.abspath(__file__)), path)
 
 class BerkeleyParser:
 
   def __init__(self):
     p = Popen(['java', 
                '-jar', 
-               './berkeleyparser/BerkeleyParser-1.7.jar', 
+               absPath('./berkeleyparser/BerkeleyParser-1.7.jar'), 
                '-gr', 
-               './berkeleyparser/eng_sm6.gr'],
+               absPath('./berkeleyparser/eng_sm6.gr')],
     stdin = PIPE, stdout = PIPE, stderr = PIPE, shell = False)
     self.p = p 
 
