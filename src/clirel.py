@@ -1,91 +1,95 @@
-"""                                                                              
- Text-Machine Lab: CliRel  
+""" 
+ Text-Machine Lab: CliRel
 
- File Name : clirel.py
-                                                                              
- Creation Date : 12-01-2016
-                                                                              
- Created By : Renan Campos                                              
-                                                                              
- Purpose : Clinical Relation Extraction main interface
+ File Name :
+
+ Creation Date : 22-10-2016
+
+ Created By : Renan Campos
+
+ Purpose : Trains, predicts and evaluates for clinical relation task.
 
 """
 
 import os
-import sys
-import argparse
+import imp
+import note
 
-import train
-import predict
-import evaluate
+def absPath(path):
+  """ Return absolute path from where this file is located """
+  return os.path.join(os.path.dirname(os.path.abspath(__file__)), path)
 
-from futilities import checkDir, checkFile
+def train(t_dir, model_path, model_flags=None):
+  """
+    >>> train('i2b2_examples/', 'model_example/')
+    'Example model success.'
+    >>> train('i2b2_examples/', 'model_example/', ['a', 'b'])
+    'Example model success with flags a b.'
+  """
+  con = os.path.join(t_dir, 'concept')
+  txt = os.path.join(t_dir, 'txt')
+  rel = os.path.join(t_dir, 'rel')
 
-def main():
+  data = note.createEntries(con, txt, rel)
 
-  parser = argparse.ArgumentParser(description="CliRel (Clinical Relation) \
-                                    extractor- trains a classifier able to \
-                                    determine the type of relation between \
-                                    two medical concepts in a sentence.")
+  # import the model.
+  # The model will be loaded as a module. This provides modularity for the
+  # assumption that the model is implemented with a 'model.py' in its main dir. 
+  model = imp.load_module('model', *imp.find_module('model', [model_path]))
 
-  # Add arguments here
-  parser.add_argument("--train", nargs=3, 
-                      metavar=("train_dir", "model_file", "model_type"), type=str, 
-                      help="Directory should contain three subdirs (txt, \
-                            concept, rel) containing .txt, .con, .rel files. \
-                            Will train a classifier on this data. \
-                            Trained model will be written to specified model file.\n \
-                            Current model types:[svm-spt, svm-insert, svm-suffix]",
-                      default=None)
-  parser.add_argument("--predict", nargs=3,
-                      metavar=("test_dir", "model_file", "results_dir"), type=str,
-                      help="Directory contains concept and text files \
-                            that the specified (or default) model will predict. \
-                            Resulting relation files will be written to \
-                            the specified results directory.",
-                      default=None)
-  parser.add_argument("--evaluate", nargs=3,
-                      metavar=("test_dir", "gold_dir", "eval_file"), type=str,
-                      help="Evaluate the relation files in the test directory \
-                      in comparison with those in the gold directory. The \
-                      results will be written to the evaluation file.", 
-                      default=None)
-  parser.add_argument("--verbose", action="store_true",
-                      default=False, help="Show debugging info.")
-  
-  args = parser.parse_args()
+  return model.train(data, model_flags)
 
-  if not args.predict and not args.train and not args.evaluate:
-    sys.stderr.write("ERROR: No valid flag specified.\n")
-    parser.print_help()
-    sys.exit(1)
 
-  if args.train:
-    checkDir(args.train[0])
-    checkDir(os.path.dirname(args.train[1]))
-    if (os.path.isdir(args.train[1])):
-      sys.stderr.write("ERROR: Model expected to be a file, %s is a directory\n"
-                 % args.train[1])
-      sys.exit(1)
+def predict(t_dir, model_path, model_flags=None):
+  """
+    Output should be the data with labels. 
+    For the example model, the new labels are all !
+    >>> predict('i2b2_examples/', 'model_example/').ix[0]
+    conEnd1                                              1
+    conEnd2                                              4
+    conStart1                                            0
+    conStart2                                            3
+    conText1                                This treatment
+    conText2                               medical problem
+    conType1                                     treatment
+    conType2                                       problem
+    fileName                                        health
+    lineNum                                              1
+    relType                                              !
+    text         This treatment improves medical problem .
+    Name: 0, dtype: object
+  """
+  con = os.path.join(t_dir, 'concept')
+  txt = os.path.join(t_dir, 'txt')
+  data = note.createEntries(con, txt)
 
-    train.main(args.train[0], args.train[1], args.train[2], args.verbose)
+  # import the model.
+  # The model will be loaded as a module. This provides modularity for the
+  # assumption that the model is implemented with a 'model.py' in its main dir. 
+  model = imp.load_module('model', *imp.find_module('model', [model_path]))
 
-  if args.predict:
-    checkDir(args.predict[0])
-    checkFile(args.predict[1])
-    checkDir(args.predict[2])
-    predict.main(args.predict[0], args.predict[1], args.predict[2], args.verbose)
+  out =  model.predict(data, model_flags)
+  data["relType"] = out
 
-  if args.evaluate:
-    checkDir(args.evaluate[0])
-    checkDir(args.evaluate[1])
-    checkDir(os.path.dirname(args.evaluate[2]))
-    if (os.path.isdir(args.evaluate[2])):
-      sys.stderr.write("ERROR: eval_file expected to be a file, %s is a \
-      directory\n" % args.evaluate[2])
-      sys.exit(1)
+  for each in set(data['fileName']):
+    with open(os.path.join(absPath('predictions'), 
+                             each + '.pred'), 'w') as f:
+      def writeToFile(d):
+        f.write(note.writeRel(d) + '\n')
+      data.apply(writeToFile, axis=1)
 
-    evaluate.main(args.evaluate[0], args.evaluate[1], args.evaluate[2], args.verbose)
+  return data
+
+def evaluate(g_dir, p_dir):
+  """
+    Extracts the relation files from the gold directory and the 
+    prediciton directory, and calculates the F1, recall, and precision.
+    For this current iteration of the task, we are only concerned if the model
+    is able to identify a relation between two concepts (ignoring order).
+  """
+  return
+
 
 if __name__ == '__main__':
-  main()
+  import doctest
+  doctest.testmod()

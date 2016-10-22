@@ -160,6 +160,24 @@ def extractRels(relFile):
   out['fileName'] = os.path.basename(relFile).split(".")[0]
   return out
 
+def writeRel(e):
+  """
+    Takes an entry and returns a string in the i2b2 relation format
+    >>> writeRel(createEntries('./i2b2_examples/concept', './i2b2_examples/txt/', './i2b2_examples/rel/').ix[0])
+    'c="This treatment" 1:0 1:1||r="TrIP"||c="medical problem" 1:3 1:4'
+  """
+  return 'c=\"%s\" %d:%d %d:%d||r=\"%s\"||c=\"%s\" %d:%d %d:%d' % (e.conText1,
+                                                                   int(e.lineNum),
+                                                                   int(e.conStart1),
+                                                                   int(e.lineNum),
+                                                                   int(e.conEnd1),
+                                                                   e.relType,
+                                                                   e.conText2,
+                                                                   int(e.lineNum),
+                                                                   int(e.conStart2),
+                                                                   int(e.lineNum),
+                                                                   int(e.conEnd2))
+
 def extractTxts(txtFile):
   """
     Takes a relation file and returns a panda datatable.

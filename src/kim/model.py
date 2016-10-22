@@ -220,6 +220,9 @@ def train(data, flags):
       
       os.remove(f_name)
   
+  del data['parse']
+  del data['vec']
+  
   # Returns nothing on sucess.
   return 
 
@@ -286,11 +289,13 @@ def predict(data, flags):
                                 axis=1)
     os.remove(r_name)    
   os.remove(f_name)
+  
+  del data['parse']
+  del data['vec']
 
-  data['relType'] = [_LABELS[r] for r in results.argmax(axis=1)]
+  out = [_LABELS[r] for r in results.argmax(axis=1)]
 
-  # Returns nothing on success- data will be modified with labels.
-  return
+  return out
 
 if __name__ == '__main__':
   from pandas import Series
