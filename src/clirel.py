@@ -1,7 +1,7 @@
 """ 
  Text-Machine Lab: CliRel
 
- File Name :
+ File Name : clirel.py
 
  Creation Date : 22-10-2016
 
@@ -13,6 +13,8 @@
 
 import os
 import imp
+import sklearn.metrics as metrics
+
 import note
 
 def absPath(path):
@@ -43,7 +45,7 @@ def train(t_dir, model_path, model_flags=None):
 def predict(t_dir, model_path, model_flags=None):
   """
     Output should be the data with labels. 
-    For the example model, the new labels are all !
+    For the example model, the new labels are all PIP
     >>> predict('i2b2_examples/', 'model_example/').ix[0]
     conEnd1                                              1
     conEnd2                                              4
@@ -55,13 +57,16 @@ def predict(t_dir, model_path, model_flags=None):
     conType2                                       problem
     fileName                                        health
     lineNum                                              1
-    relType                                              !
+    relType                                            PIP
     text         This treatment improves medical problem .
     Name: 0, dtype: object
   """
   con = os.path.join(t_dir, 'concept')
   txt = os.path.join(t_dir, 'txt')
   data = note.createEntries(con, txt)
+
+  for f in note.filterFiles(absPath('predictions'), 'pred'):
+    os.remove(f)
 
   # import the model.
   # The model will be loaded as a module. This provides modularity for the
@@ -87,9 +92,103 @@ def evaluate(g_dir, p_dir):
     For this current iteration of the task, we are only concerned if the model
     is able to identify a relation between two concepts (ignoring order).
   """
-  return
+  gold = dict()
+  pred = dict()
 
+  def addGold(d):
+    ind = [int(d.conStart1), int(d.conEnd1), int(d.conStart2), int(d.conEnd2)]
+    # Ignore ordering
+    ind.sort()
+    ind.append(d.lineNum)
+    ind.append(d.fileName)
+    gold[tuple(ind)] = d.relType
 
+  for g in note.filterFiles(g_dir, 'rel'):
+    rel = note.extractRels(g) 
+    rel.apply(addGold, axis=1) 
+  
+  def addPred(d):
+    ind = [int(d.conStart1), int(d.conEnd1), int(d.conStart2), int(d.conEnd2)]
+    # Ignore ordering
+    ind.sort()
+    ind.append(d.lineNum)
+    ind.append(d.fileName)
+    # Ignore negative classification
+    if d.relType[0] != 'N':
+      pred[tuple(ind)] = d.relType
+
+  for p in note.filterFiles(p_dir, 'pred'):
+    rel = note.extractRels(p) 
+    rel.apply(addPred, axis=1) 
+
+  TP = 0
+  FP = 0
+  FN = 0
+
+  g_labels = list()
+  p_labels = list()
+  for p in pred.keys():
+    try:
+      gold[p]
+    except KeyError:
+      FP += 1
+  
+  for g in gold.keys():
+    try:
+      p_labels.append(pred[g])
+      g_labels.append(gold[g])
+      TP += 1
+    except KeyError:
+      FN += 1
+  
+  if (TP + FP):
+    P = float(TP) / (TP + FP)
+  else:
+    P = 0
+  if (TP + FN):
+    R = float(TP) / (TP + FN)
+  else:
+    R = 0
+  if (P + R):
+    F1 = 2 * (P * R) / (P + R)
+  else:
+    F1 = 0
+
+  print "-" * 80
+  print "Relation Detection Statistics:"
+  print ""
+  print "\tTrue positives: ",  TP
+  print "\tFalse positives:",  FP
+  print "\tFalse negatives:",  FN
+  print ""
+  print "\tF1: %.4f\n\tPrecision: %.4f\n\tRecall: %.4f" % (F1, P, R)
+  print ""
+  print "-" * 80
+  print "Classification Statistics:"
+  print ""
+  print "\tF1:        %.4f" % metrics.f1_score(g_labels, 
+                                               p_labels, 
+                                               average='micro')
+  print "\tPrecision: %.4f" % metrics.precision_score(g_labels, 
+                                                      p_labels,
+                                                      average='micro')
+  print "\tRecall:    %.4f" % metrics.recall_score(g_labels, 
+                                                   p_labels,
+                                                   average='micro')
+  print ""
+  print (list(set(g_labels)))
+  print metrics.confusion_matrix(g_labels, 
+                                 p_labels, 
+                                 labels=list(set(g_labels)))
+  print "-" * 80
+  print ""
+ 
 if __name__ == '__main__':
   import doctest
   doctest.testmod()
+  # Uncomment to test evaluate
+  evaluate('i2b2_examples/rel/', 'predictions/')
+    
+  #train('i2b2_examples/', 'kim/')
+  #predict('i2b2_examples/', 'kim/')
+  #evaluate('i2b2_examples/rel/', 'predictions/')
