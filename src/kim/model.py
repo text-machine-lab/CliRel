@@ -16,8 +16,9 @@
 
 """
 
-import parser
+import bParser as parser
 import tree
+import numpy as np
 
 import os
 import subprocess
@@ -93,28 +94,28 @@ def parse(x):
 def insert(x):
   return tree.createString(tree.insert(
            tree.createTree(x.parse), 
-           x.conStart1, 
-           x.conEnd1,
+           int(x.conStart1), 
+           int(x.conEnd1),
            x.conType1,
-           x.conStart2,
-           x.conEnd2,
+           int(x.conStart2),
+           int(x.conEnd2),
            x.conType2))
 
 def suffix(x):
   return tree.createString(tree.suffix(
            tree.createTree(x.parse), 
-           x.conStart1, 
-           x.conEnd1,
+           int(x.conStart1), 
+           int(x.conEnd1),
            x.conType1,
-           x.conStart2,
-           x.conEnd2,
+           int(x.conStart2),
+           int(x.conEnd2),
            x.conType2))
 
 def spt(x):
   return tree.createString(tree.spt(
            tree.createTree(x.parse), 
-           x.conStart1, 
-           x.conEnd2))
+           int(x.conStart1), 
+           int(x.conEnd2)))
 
 def entityFeature(x):
   """
@@ -197,28 +198,28 @@ def train(data, flags):
           y = '1'
         else:
           y = '-1'
-        out = y + ' |BT ( ' + x.parse + ' ) |ET| ' + x.vec + ' |EV|\n'
+        out = y + ' |BT| ( ' + x.parse + ' ) |ET| ' + x.vec + ' |EV|\n'
         f.write(out)
         return
 
       data.apply(svmTrain, axis=1)
 
-      subprocess.call([absPath('./svm-light-TK-1.2.1/svm_learn'), 
-                       '-t', '5',
-                       '-S', '1',
-                       '-D', '1',
-                       '-r', '1',
-                       '-c', '0.5',
-                       '-d', '2',
-                       '-T', '3.35',
-                       '-N', '3',
-                       '-W', 'S',
-                       '-v', '0',
-                       f_name,
-                       f_name.split('.tmp')[0] + '.svm',
-                      ])
-      
-      os.remove(f_name)
+    subprocess.call([absPath('./svm-light-TK-1.2.1/svm_learn'), 
+                     '-t', '5',
+                     '-S', '1',
+                     '-D', '1',
+                     '-r', '1',
+                     '-c', '0.5',
+                     '-d', '2',
+                     '-T', '3.35',
+                     '-N', '3',
+                     '-W', 'S',
+                     '-v', '0',
+                     f_name,
+                     f_name.split('.tmp')[0] + '.svm',
+                    ])
+    
+    os.remove(f_name)
   
   del data['parse']
   del data['vec']
@@ -260,14 +261,14 @@ def predict(data, flags):
 
   first = True
   with open(f_name, 'w') as f:
-    def svmTrain(x):
+    def svmPred(x):
       """
         Temporary function to write svm training files.
       """
-      out = y + '|BT ( ' + x.parse + ' ) |ET| ' + x.vec + ' |EV|\n'
+      out = '|BT| ( ' + x.parse + ' ) |ET| ' + x.vec + ' |EV|\n'
       f.write(out)
       return
-    data.apply(svmTrain, axis=1)
+    data.apply(svmPred, axis=1)
   for label in _LABELS:
     m_name = os.path.join(absPath("./svm"), label + '.svm')
     r_name = os.path.join(absPath("./svm"), label + '.predict')
@@ -283,12 +284,11 @@ def predict(data, flags):
       results = np.array(r_label).reshape(len(r_label),1)
       first = False
     else:
-      results = np.concatenate(
-                                results,
-                                np.array(r_label).reshape(len(r_label),1),
+      results = np.concatenate((results,
+                                np.array(r_label).reshape(len(r_label),1)),
                                 axis=1)
     os.remove(r_name)    
-  os.remove(f_name)
+  #os.remove(f_name)
   
   del data['parse']
   del data['vec']

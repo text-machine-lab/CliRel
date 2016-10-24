@@ -12,7 +12,7 @@
 """
 
 import os
-import imp
+import sys
 import sklearn.metrics as metrics
 
 import note
@@ -37,9 +37,14 @@ def train(t_dir, model_path, model_flags=None):
   # import the model.
   # The model will be loaded as a module. This provides modularity for the
   # assumption that the model is implemented with a 'model.py' in its main dir. 
-  model = imp.load_module('model', *imp.find_module('model', [model_path]))
+  sys.path.insert(0, absPath(model_path))
+  import model
+  sys.path = sys.path[1:]
 
-  return model.train(data, model_flags)
+  out = model.train(data, model_flags)
+  del model
+
+  return out
 
 
 def predict(t_dir, model_path, model_flags=None):
@@ -71,7 +76,9 @@ def predict(t_dir, model_path, model_flags=None):
   # import the model.
   # The model will be loaded as a module. This provides modularity for the
   # assumption that the model is implemented with a 'model.py' in its main dir. 
-  model = imp.load_module('model', *imp.find_module('model', [model_path]))
+  sys.path.insert(0, model_path)
+  import model
+  sys.path = sys.path[1:]
 
   out =  model.predict(data, model_flags)
   data["relType"] = out
@@ -82,6 +89,8 @@ def predict(t_dir, model_path, model_flags=None):
       def writeToFile(d):
         f.write(note.writeRel(d) + '\n')
       data.apply(writeToFile, axis=1)
+
+  del model
 
   return data
 
@@ -184,11 +193,26 @@ def evaluate(g_dir, p_dir):
   print ""
  
 if __name__ == '__main__':
-  import doctest
-  doctest.testmod()
+  # Uncomment to run tests
+  #import doctest
+  #doctest.testmod()
   # Uncomment to test evaluate
-  evaluate('i2b2_examples/rel/', 'predictions/')
-    
-  #train('i2b2_examples/', 'kim/')
-  #predict('i2b2_examples/', 'kim/')
   #evaluate('i2b2_examples/rel/', 'predictions/')
+  #print "train"
+  #train('i2b2_examples/', 'kim/')
+  #print "predict"
+  #predict('i2b2_examples/', 'kim/')
+  #print "evaluate"
+  #evaluate('i2b2_examples/rel/', 'predictions/')
+  #print "train"
+  #train('i2b2_examples/', 'kim/', ['insert'])
+  #print "predict"
+  #predict('i2b2_examples/', 'kim/', ['insert'])
+  #print "evaluate"
+  #evaluate('i2b2_examples/rel/', 'predictions/')
+  #print "train"
+  train('i2b2_examples/', 'kim/', ['suffix'])
+  print "predict"
+  predict('i2b2_examples/', 'kim/', ['suffix'])
+  print "evaluate"
+  evaluate('i2b2_examples/rel/', 'predictions/')
