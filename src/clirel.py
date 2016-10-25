@@ -122,9 +122,7 @@ def evaluate(g_dir, p_dir):
     ind.sort()
     ind.append(d.lineNum)
     ind.append(d.fileName)
-    # Ignore negative classification
-    if d.relType[0] != 'N':
-      pred[tuple(ind)] = d.relType
+    pred[tuple(ind)] = d.relType
 
   for p in note.filterFiles(p_dir, 'pred'):
     rel = note.extractRels(p) 
@@ -140,15 +138,17 @@ def evaluate(g_dir, p_dir):
     try:
       gold[p]
     except KeyError:
-      FP += 1
+      # Ignore negative classification
+      if pred[p][0] != 'N':
+        FP += 1
   
   for g in gold.keys():
-    try:
-      p_labels.append(pred[g])
-      g_labels.append(gold[g])
+    g_labels.append(gold[g])
+    if pred[g][0] != 'N':
       TP += 1
-    except KeyError:
-      FN += 1
+    else:
+      FP += 1
+    p_labels.append(pred[g])
   
   if (TP + FP):
     P = float(TP) / (TP + FP)
@@ -198,12 +198,12 @@ if __name__ == '__main__':
   #doctest.testmod()
   # Uncomment to test evaluate
   #evaluate('i2b2_examples/rel/', 'predictions/')
-  #print "train"
-  #train('i2b2_examples/', 'kim/')
-  #print "predict"
-  #predict('i2b2_examples/', 'kim/')
-  #print "evaluate"
-  #evaluate('i2b2_examples/rel/', 'predictions/')
+  print "train"
+  train('i2b2_examples/', 'kim/')
+  print "predict"
+  predict('i2b2_examples/', 'kim/')
+  print "evaluate"
+  evaluate('i2b2_examples/rel/', 'predictions/')
   #print "train"
   #train('i2b2_examples/', 'kim/', ['insert'])
   #print "predict"
@@ -211,8 +211,14 @@ if __name__ == '__main__':
   #print "evaluate"
   #evaluate('i2b2_examples/rel/', 'predictions/')
   #print "train"
-  train('i2b2_examples/', 'kim/', ['suffix'])
-  print "predict"
-  predict('i2b2_examples/', 'kim/', ['suffix'])
-  print "evaluate"
-  evaluate('i2b2_examples/rel/', 'predictions/')
+  #train('i2b2_examples/', 'kim/', ['suffix'])
+  #print "predict"
+  #predict('i2b2_examples/', 'kim/', ['suffix'])
+  #print "evaluate"
+  #evaluate('i2b2_examples/rel/', 'predictions/')
+  #print "train"
+  #train('../data/train/', 'kim/')
+  #print "predict"
+  #predict('../data/train/', 'kim/')
+  #print "evaluate"
+  #evaluate('../data/train/rel/', 'predictions/')

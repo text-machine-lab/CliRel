@@ -89,9 +89,13 @@ def parse(x):
     >>> parse(Series({'text': 'This is a test sentence .'})).strip()
     '(S (NP (DT This)) (VP (VBZ is) (NP (DT a) (NN test) (NN sentence))) (. .))'
   """
+  if V:
+    print "Parsing: %s, line: %s" % (x.fileName, x.lineNum)
   return P.parse(x.text).strip()[2:-2]
 
 def insert(x):
+  if V:
+    print "Inserting: %s, line: %s" % (x.fileName, x.lineNum)
   return tree.createString(tree.insert(
            tree.createTree(x.parse), 
            int(x.conStart1), 
@@ -102,6 +106,8 @@ def insert(x):
            x.conType2))
 
 def suffix(x):
+  if V:
+    print "Suffixing for: %s, line: %s" % (x.fileName, x.lineNum)
   return tree.createString(tree.suffix(
            tree.createTree(x.parse), 
            int(x.conStart1), 
@@ -112,6 +118,8 @@ def suffix(x):
            x.conType2))
 
 def spt(x):
+  if V:
+    print "Finding spt for: %s, line: %s" % (x.fileName, x.lineNum)
   return tree.createString(tree.spt(
            tree.createTree(x.parse), 
            int(x.conStart1), 
@@ -147,6 +155,8 @@ def entityFeature(x):
       ...
     ValueError: Invalid concept types given: test and treatment.
   """
+  if V:
+    print "Finding entity vector for: %s, line: %s" % (x.fileName, x.lineNum)
   cons = (x.conType1, x.conType2)
   if cons == ('test', 'problem') or cons == ('problem', 'test'):
     return '1:1 3:1'
@@ -300,6 +310,7 @@ def predict(data, flags):
 if __name__ == '__main__':
   from pandas import Series
   from numpy import nan
+  V = False
   test1  = Series({'conType1': 'treatment', 'conType2': 'problem', 'relType': nan})
   test2  = Series({'conType1': 'problem',   'conType2': 'problem', 'relType': nan})
   test3  = Series({'conType1': 'test',      'conType2': 'problem', 'relType': nan})
@@ -314,3 +325,5 @@ if __name__ == '__main__':
   import doctest
   doctest.testmod()
   P.close()
+else:
+  V = True
