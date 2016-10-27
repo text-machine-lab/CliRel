@@ -28,11 +28,14 @@ def train(t_dir, model_path, model_flags=None):
     >>> train('i2b2_examples/', 'model_example/', ['a', 'b'])
     'Example model success with flags a b.'
   """
-  con = os.path.join(t_dir, 'concept')
-  txt = os.path.join(t_dir, 'txt')
-  rel = os.path.join(t_dir, 'rel')
+  cons = note.filterFiles(os.path.join(t_dir, 'concept'), 'con')
+  txts = note.filterFiles(os.path.join(t_dir,     'txt'), 'txt')
+  rels = note.filterFiles(os.path.join(t_dir,     'rel'), 'rel')
 
-  data = note.createEntries(con, txt, rel)
+  data = list()
+
+  for c,t,r in zip(cons, txts, rels):
+    data.append((c, t, r))
 
   # import the model.
   # The model will be loaded as a module. This provides modularity for the
@@ -48,27 +51,14 @@ def train(t_dir, model_path, model_flags=None):
 
 
 def predict(t_dir, model_path, model_flags=None):
-  """
-    Output should be the data with labels. 
-    For the example model, the new labels are all PIP
-    >>> predict('i2b2_examples/', 'model_example/').ix[0]
-    conEnd1                                              1
-    conEnd2                                              4
-    conStart1                                            0
-    conStart2                                            3
-    conText1                                This treatment
-    conText2                               medical problem
-    conType1                                     treatment
-    conType2                                       problem
-    fileName                                        health
-    lineNum                                              1
-    relType                                            PIP
-    text         This treatment improves medical problem .
-    Name: 0, dtype: object
-  """
-  con = os.path.join(t_dir, 'concept')
-  txt = os.path.join(t_dir, 'txt')
-  data = note.createEntries(con, txt)
+  
+  cons = note.filterFiles(os.path.join(t_dir, 'concept'), 'con')
+  txts = note.filterFiles(os.path.join(t_dir,     'txt'), 'txt')
+
+  data = list()
+
+  for c,t in zip(cons, txts):
+    data.append((c, t))
 
   for f in note.filterFiles(absPath('predictions'), 'pred'):
     os.remove(f)
@@ -80,19 +70,12 @@ def predict(t_dir, model_path, model_flags=None):
   import model
   sys.path = sys.path[1:]
 
-  out =  model.predict(data, model_flags)
-  data["relType"] = out
-
-  for each in set(data['fileName']):
-    with open(os.path.join(absPath('predictions'), 
-                             each + '.pred'), 'w') as f:
-      def writeToFile(d):
-        f.write(note.writeRel(d) + '\n')
-      data.apply(writeToFile, axis=1)
+  print data
+  out = model.predict(data, model_flags)
 
   del model
 
-  return data
+  return out
 
 def evaluate(g_dir, p_dir):
   """
@@ -199,9 +182,9 @@ if __name__ == '__main__':
   # Uncomment to test evaluate
   #evaluate('i2b2_examples/rel/', 'predictions/')
   print "train"
-  train('i2b2_examples/', 'kim/')
+  train('i2b2_examples/', 'kim/', ['i2b2_examples/parse'])
   print "predict"
-  predict('i2b2_examples/', 'kim/')
+  predict('i2b2_examples/', 'kim/', ['i2b2_examples/parse'])
   print "evaluate"
   evaluate('i2b2_examples/rel/', 'predictions/')
   #print "train"

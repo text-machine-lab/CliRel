@@ -22,12 +22,12 @@ def extractPars(parFile):
     Takes a parse file and returns a panda datatable.
     >>> print extractPars('../i2b2_examples/parse/health.parse').ix[0]
     lineNum                                                     1
-    parse       ( (S (NP (DT This) (NN treatment)) (VP (VBZ im...
+    parse       (S (NP (DT This) (NN treatment)) (VP (VBZ impr...
     fileName                                               health
     Name: 0, dtype: object
     >>> print extractPars('../i2b2_examples/parse/health.parse').ix[1]
     lineNum                                                     2
-    parse       ( (S (NP (NNP Treatment)) (VP (VBZ worsens) (N...
+    parse       (S (NP (NNP Treatment)) (VP (VBZ worsens) (NP ...
     fileName                                               health
     Name: 1, dtype: object
   """
@@ -35,7 +35,7 @@ def extractPars(parFile):
 
   with open(parFile, 'r') as f:
     for i, line in enumerate(f):
-      data.append((i+1, line.strip()))
+      data.append((i+1, line.strip()[2:-2]))
   
   out = DataFrame(data, columns = ["lineNum", 
                                    "parse"])

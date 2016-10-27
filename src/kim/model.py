@@ -16,17 +16,23 @@
 
 """
 
-import bParser as parser
+ 
 import tree
+import bParser
 import numpy as np
 
 import os
+import sys
 import subprocess
 import pandas as pd
 
 def absPath(path):
   """ Return absolute path from where this file is located """
   return os.path.join(os.path.dirname(os.path.abspath(__file__)), path)
+
+sys.path.append(absPath('../'))
+import note
+
 
 # Labels svm should train.
 _LABELS = ['TrIP','TrWP','TrCP',
@@ -79,19 +85,7 @@ def genNeg(x):
 #
 # Feature extraction helpers
 #
-
-def parse(x):
-  """
-    Returns a parse of the given text
-    This takes a second for the first sentence because the module has to load.
-    >>> parse(Series({'text': 'Hello'})).strip()
-    '(INTJ (UH Hello))'
-    >>> parse(Series({'text': 'This is a test sentence .'})).strip()
-    '(S (NP (DT This)) (VP (VBZ is) (NP (DT a) (NN test) (NN sentence))) (. .))'
-  """
-  if V:
-    print "Parsing: %s, line: %s" % (x.fileName, x.lineNum)
-  return P.parse(x.text).strip()[2:-2]
+I = 1
 
 def insert(x):
   if V:
@@ -168,52 +162,62 @@ def entityFeature(x):
 
 
 def train(data, flags):
+  # Initialize training files
+  for label in _LABELS:
+    f_name = os.path.join(absPath('./svm'), label + '.tmp')
+    with open(f_name, 'w') as f:
+      pass
 
-  # Generate Negative Examples
-  data['relType'] = data.apply(genNeg, axis=1)
+  parses = note.filterFiles(flags[0], 'parse')
 
-  # Filter invalid entries (i.e. test/treatment combinations)
-  data = data[data['relType'].notnull()]
+  for ((c,t,r),p) in zip(data, parses):
+    X = note.createTraining(c, t, r)
+    # Generate negative examples
+    X['relType'] = X.apply(genNeg, axis=1)
+    
+    # Filter invalid entries (i.e. test/treatment combinations)
+    X = X[X['relType'].notnull()]
 
-  # Obtain parse trees
-  global P 
-  P = parser.BerkeleyParser()
-  data['parse'] = data.apply(parse, axis=1)
-  P.close()
-  del P
+    # Obtain parse trees
+    P = bParser.extractPars(p)
+    X = pd.merge(X, P, how='left')
 
-  # Enrich parse trees
-  if flags:
-    if flags[0] == 'insert':
-      data['parse'] = data.apply(insert, axis=1)
-    if flags[0] == 'suffix':
-      data['parse'] = data.apply(suffix, axis=1)
+    # Enrich parse trees
+    if len(flags) > 1:
+      if flags[1] == 'insert':
+        X['parse'] = X.apply(insert, axis=1)
+      if flags[1] == 'suffix':
+        X['parse'] = X.apply(suffix, axis=1)
+      else:
+        return 'Invalid flag.'
     else:
-      return 'Invalid flag.'
-  else:
-    data['parse'] = data.apply(spt, axis=1)
+      X['parse'] = X.apply(spt, axis=1)
+    
+    # Create entity vectors
+    X['vec'] = X.apply(entityFeature, axis=1)
+    
+    # Write to svm files
+    for label in _LABELS:
+      f_name = os.path.join(absPath('./svm'), label + '.tmp')
+      with open(f_name, 'a') as f:
+        def svmTrain(x):
+          """
+            Temporary function to write svm training files.
+          """
+          if x.relType == label:
+            y = '1'
+          else:
+            y = '-1'
+          out = y + ' |BT| ( ' + x.parse + ' ) |ET| ' + x.vec + ' |EV|\n'
+          f.write(out)
+          return
 
-  # Create entity vectors
-  data['vec'] = data.apply(entityFeature, axis=1)
+        X.apply(svmTrain, axis=1)
+
 
   # Train svms
   for label in _LABELS:
     f_name = os.path.join(absPath('./svm'), label + '.tmp')
-    with open(f_name, 'w') as f:
-      def svmTrain(x):
-        """
-          Temporary function to write svm training files.
-        """
-        if x.relType == label:
-          y = '1'
-        else:
-          y = '-1'
-        out = y + ' |BT| ( ' + x.parse + ' ) |ET| ' + x.vec + ' |EV|\n'
-        f.write(out)
-        return
-
-      data.apply(svmTrain, axis=1)
-
     subprocess.call([absPath('./svm-light-TK-1.2.1/svm_learn'), 
                      '-t', '5',
                      '-S', '1',
@@ -231,81 +235,93 @@ def train(data, flags):
     
     os.remove(f_name)
   
-  del data['parse']
-  del data['vec']
-  
-  # Returns nothing on sucess.
-  return 
+  # Returns nothing on success
+  return
 
 def predict(data, flags):
 
-  # Generate Negative Examples - to ensure only valid entries are being labeled.
-  data['relType'] = data.apply(genNeg, axis=1)
+  print data
+  parses = note.filterFiles(flags[0], 'parse')
+  print parses
+  for ((c,t),p) in zip(data, parses):
+    print c, t
+    X = note.createTesting(c, t)
+    print X
+    # Generate negative examples
+    X['relType'] = X.apply(genNeg, axis=1)
+    
+    # Filter invalid entries (i.e. test/treatment combinations)
+    X = X[X['relType'].notnull()]
 
-  # Filter invalid entries (i.e. test/treatment combinations)
-  data = data[data['relType'].notnull()]
+    # Obtain parse trees
+    P = bParser.extractPars(p)
+    X = pd.merge(X, P, how='left')
 
-  # Obtain parse trees
-  global P 
-  P = parser.BerkeleyParser()
-  data['parse'] = data.apply(parse, axis=1)
-  P.close()
-  del P
-
-  # Enrich parse trees
-  if flags:
-    if flags[0] == 'insert':
-      data['parse'] = data.apply(insert, axis=1)
-    if flags[0] == 'suffix':
-      data['parse'] = data.apply(suffix, axis=1)
+    # Enrich parse trees
+    if len(flags) > 1:
+      if flags[1] == 'insert':
+        X['parse'] = X.apply(insert, axis=1)
+      if flags[1] == 'suffix':
+        X['parse'] = X.apply(suffix, axis=1)
+      else:
+        return 'Invalid flag.'
     else:
-      return 'Invalid flag.'
-  else:
-    data['parse'] = data.apply(spt, axis=1)
+      X['parse'] = X.apply(spt, axis=1)
+    
+    # Create entity vectors
+    X['vec'] = X.apply(entityFeature, axis=1)
+    
 
-  # Create entity vectors
-  data['vec'] = data.apply(entityFeature, axis=1)
+    # Make predictions
+    f_name = os.path.join(absPath("./svm"), 'predict.tmp')
 
-  # Train svms
-  f_name = os.path.join(absPath("./svm"), 'predict.tmp')
+    first = True
+    with open(f_name, 'w') as f:
+      def svmPred(x):
+        """
+          Temporary function to write svm training files.
+        """
+        out = '|BT| ( ' + x.parse + ' ) |ET| ' + x.vec + ' |EV|\n'
+        f.write(out)
+        return
 
-  first = True
-  with open(f_name, 'w') as f:
-    def svmPred(x):
-      """
-        Temporary function to write svm training files.
-      """
-      out = '|BT| ( ' + x.parse + ' ) |ET| ' + x.vec + ' |EV|\n'
-      f.write(out)
-      return
-    data.apply(svmPred, axis=1)
-  for label in _LABELS:
-    m_name = os.path.join(absPath("./svm"), label + '.svm')
-    r_name = os.path.join(absPath("./svm"), label + '.predict')
-    subprocess.call([absPath('./svm-light-TK-1.2.1/svm_classify'), 
-                     f_name, 
-                     m_name,
-                     r_name])
-    r_label = list()
-    with open(r_name, 'r') as f:
-      for line in f:
-        r_label.append(float(line))
-    if first:
-      results = np.array(r_label).reshape(len(r_label),1)
-      first = False
-    else:
-      results = np.concatenate((results,
-                                np.array(r_label).reshape(len(r_label),1)),
-                                axis=1)
-    os.remove(r_name)    
-  #os.remove(f_name)
-  
-  del data['parse']
-  del data['vec']
+      X.apply(svmPred, axis=1)
 
-  out = [_LABELS[r] for r in results.argmax(axis=1)]
+    for label in _LABELS:
+      m_name = os.path.join(absPath("./svm"), label + '.svm')
+      r_name = os.path.join(absPath("./svm"), label + '.predict')
+      subprocess.call([absPath('./svm-light-TK-1.2.1/svm_classify'), 
+                       f_name, 
+                       m_name,
+                       r_name])
+      r_label = list()
+      with open(r_name, 'r') as f:
+        for line in f:
+          r_label.append(float(line))
+      if first:
+        results = np.array(r_label).reshape(len(r_label),1)
+        first = False
+      else:
+        results = np.concatenate((results,
+                                  np.array(r_label).reshape(len(r_label),1)),
+                                  axis=1)
+      os.remove(r_name)    
+    os.remove(f_name)
+    
+    out = [_LABELS[r] for r in results.argmax(axis=1)]
 
-  return out
+    X['relType'] = out
+
+    # Write predictions to file
+    f_name = X.ix[0]['fileName']
+    with open(os.path.join(absPath('../predictions'), 
+                             f_name + '.pred'), 'w') as f:
+      def writeToFile(d):
+        f.write(note.writeRel(d) + '\n')
+      
+      X.apply(writeToFile, axis=1)
+
+  return
 
 if __name__ == '__main__':
   from pandas import Series
@@ -320,10 +336,7 @@ if __name__ == '__main__':
   test7  = Series({'conType2': 'test',      'conType1': 'problem', 'relType': nan})
   test8 = Series({'conType2': 'problem',   'conType1': 'test',    'relType': 'TeIP'})
   test9 = Series({'conType2': 'treatment', 'conType1': 'test',    'relType': nan})
-  global P
-  P = parser.BerkeleyParser()
   import doctest
   doctest.testmod()
-  P.close()
 else:
   V = True
