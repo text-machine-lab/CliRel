@@ -21,6 +21,7 @@ then
   x=`basename $1`
   y=${x%%.*}
   cat $1 | java -jar $d/berkeleyparser/BerkeleyParser-1.7.jar -gr $d/berkeleyparser/eng_sm6.gr > `dirname $1`/../parse/${y##*/}.parse
+  sed -i 's/\"/\\"/g' `dirname $1`/../parse/${y##*/}.parse
   exit
 fi
 
@@ -34,5 +35,6 @@ then
     y=${x%%.*}
     # Parse
     cat $1$f | java -jar $d/berkeleyparser/BerkeleyParser-1.7.jar -gr $d/berkeleyparser/eng_sm6.gr > $1/../parse/${y##*/}.parse
+    sed -i 's/\"/\\"/g' $1/../parse/${y##*/}.parse
   done
 fi

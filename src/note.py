@@ -71,11 +71,10 @@ def extractCons(consFile):
   with open(consFile, 'r') as f:
     for line in f:
       data.append(extractConsFromText(line))
-  
   out = list()
   for i,d1 in enumerate(data):
-    for d2 in data[i+1:]:
-      if d1[0] == d2[0]:
+    for j,d2 in enumerate(data):
+      if d1[0] == d2[0] and i != j:
         out.append(d1 + d2[1:])
   # No concept pairs
   if len(out) == 0:
@@ -246,7 +245,9 @@ def createTraining(cFile, tFile, rFile):
   relations = extractRels(rFile)
   # Handling empty relations
   if type(relations) == type(None):
-    return None
+    concepts['relType'] = np.nan
+    return pd.merge(concepts, text, how='left')
+  #  return None
 
   return pd.merge(pd.merge(concepts, relations, how='outer'), text, how='left')
 

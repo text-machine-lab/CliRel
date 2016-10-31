@@ -70,7 +70,6 @@ def predict(t_dir, model_path, model_flags=None):
   import model
   sys.path = sys.path[1:]
 
-  print data
   out = model.predict(data, model_flags)
 
   del model
@@ -97,6 +96,8 @@ def evaluate(g_dir, p_dir):
 
   for g in note.filterFiles(g_dir, 'rel'):
     rel = note.extractRels(g) 
+    if type(rel) == type(None):
+      continue
     rel.apply(addGold, axis=1) 
   
   def addPred(d):
@@ -127,11 +128,13 @@ def evaluate(g_dir, p_dir):
   
   for g in gold.keys():
     g_labels.append(gold[g])
-    if pred[g][0] != 'N':
+    try: 
+      pred[g]
       TP += 1
-    else:
-      FP += 1
-    p_labels.append(pred[g])
+      p_labels.append(pred[g])
+    except KeyError:
+      FN += 1
+      p_labels.append('O')
   
   if (TP + FP):
     P = float(TP) / (TP + FP)
@@ -168,10 +171,10 @@ def evaluate(g_dir, p_dir):
                                                    p_labels,
                                                    average='micro')
   print ""
-  print (list(set(g_labels)))
+  print (list(set(g_labels))+['O'])
   print metrics.confusion_matrix(g_labels, 
                                  p_labels, 
-                                 labels=list(set(g_labels)))
+                                 labels=list(set(g_labels))+['O'])
   print "-" * 80
   print ""
  
@@ -181,12 +184,12 @@ if __name__ == '__main__':
   #doctest.testmod()
   # Uncomment to test evaluate
   #evaluate('i2b2_examples/rel/', 'predictions/')
-  print "train"
-  train('i2b2_examples/', 'kim/', ['i2b2_examples/parse'])
-  print "predict"
-  predict('i2b2_examples/', 'kim/', ['i2b2_examples/parse'])
-  print "evaluate"
-  evaluate('i2b2_examples/rel/', 'predictions/')
+  #print "train"
+  #train('i2b2_examples/', 'kim/', ['i2b2_examples/parse'])
+  #print "predict"
+  #predict('i2b2_examples/', 'kim/', ['i2b2_examples/parse'])
+  #print "evaluate"
+  #evaluate('i2b2_examples/rel/', 'predictions/')
   #print "train"
   #train('i2b2_examples/', 'kim/', ['insert'])
   #print "predict"
@@ -200,8 +203,12 @@ if __name__ == '__main__':
   #print "evaluate"
   #evaluate('i2b2_examples/rel/', 'predictions/')
   #print "train"
-  #train('../data/train/', 'kim/')
+  #train('../data/train/', 'kim/', ['../data/train/parse'])
   #print "predict"
-  #predict('../data/train/', 'kim/')
+  #predict('../data/train/', 'kim/', ['../data/train/parse'])
   #print "evaluate"
   #evaluate('../data/train/rel/', 'predictions/')
+  print "predict"
+  predict('../data/test/', 'kim/', ['../data/test/parse'])
+  print "evaluate"
+  evaluate('../data/test/rel/', 'predictions/')
