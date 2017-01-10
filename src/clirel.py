@@ -42,7 +42,7 @@ def train(t_dir, model_path, model_flags=None):
   # import the model.
   # The model will be loaded as a module. This provides modularity for the
   # assumption that the model is implemented with a 'model.py' in its main dir.
-  sys.path.insert(0, absPath(model_path))
+  sys.path.insert(0, model_path)
   import model
   sys.path = sys.path[1:]
 
@@ -62,7 +62,7 @@ def predict(t_dir, model_path, model_flags=None):
   for c,t in zip(cons, txts):
     data.append((c, t))
 
-  for f in note.filterFiles(absPath('predictions'), 'pred'):
+  for f in note.filterFiles(absPath('../predictions'), 'pred'):
     os.remove(f)
 
   # import the model.
@@ -134,6 +134,7 @@ def evaluate(e_dir, p_dir):
   TP = 0
   FP = 0
   FN = 0
+  TN = 0
 
   g_labels = list()
   p_labels = list()
@@ -149,12 +150,14 @@ def evaluate(e_dir, p_dir):
         g_labels.append(gold[g])
       FN += 1
     else:
-      TP += 1
 # This ignores concept pairs that did not have a relation.
 # Meaning this metric won't take into account Falsely labeled pairs.
       if gold[g][0] != "N":
         p_labels.append(pred[g])
         g_labels.append(gold[g])
+        TP += 1
+      else:
+        TN += 1
 
   if (TP + FP):
     P = float(TP) / (TP + FP)
@@ -174,9 +177,10 @@ def evaluate(e_dir, p_dir):
   print "-" * 80
   print "Relation Detection Statistics:"
   print ""
-  print "\tTrue positives: ",  TP
-  print "\tFalse positives:",  FP
-  print "\tFalse negatives:",  FN
+  print "\t%15s: %6d %15s: %6d\n\t%15s: %6d %15s: %6d" % ("True positives",  TP,
+                                                          "False negatives", FN,
+                                                          "False positives", FP,
+                                                          "True negatives", TN)
   print ""
   print "\tF1: %.4f\n\tPrecision: %.4f\n\tRecall: %.4f" % (F1, P, R)
   print ""
@@ -210,7 +214,7 @@ if __name__ == '__main__':
   #doctest.testmod()
 
   if (len(sys.argv) < 2):
-    print "USAGE: clirel.py train|test|eval data_dir [model|pred_dir] [options]"
+    print "USAGE: clirel train|test|eval data_dir [model|pred_dir] [options]"
     sys.exit(1)
 
   if (sys.argv[1] == "train"):
@@ -220,7 +224,7 @@ if __name__ == '__main__':
       opts  = sys.argv[4:]
     except:
       print "Invalid arguemnts"
-      print "USAGE: clirel.py train data_dir model options"
+      print "USAGE: clirel train data_dir model options"
       sys.exit(1)
     print "Training..."
     train(t_dir, model, opts)
@@ -231,7 +235,7 @@ if __name__ == '__main__':
       opts  = sys.argv[4:]
     except:
       print "Invalid arguments"
-      print "USAGE: clirel.py test data_dir model options"
+      print "USAGE: clirel test data_dir model options"
       sys.exit(1)
     print "Predicting..."
     predict(t_dir, model, opts)
@@ -241,50 +245,10 @@ if __name__ == '__main__':
       pred  = sys.argv[3]
     except:
       print "Invalid arguments"
-      print "USAGE: clirel.py eval data_dir pred_dir"
+      print "USAGE: clirel eval data_dir pred_dir"
       sys.exit(1)
     print "Evaluating..."
     evaluate(e_dir, pred)
   else:
-    print "USAGE: clirel.py train|test|eval data_dir [model|pred_dir] [options]"
+    print "USAGE: clirel train|test|eval data_dir [model|pred_dir] [options]"
     sys.exit(1)
-
-  # Uncomment to test evaluate
-  #evaluate('i2b2_examples/rel/', 'predictions/')
-  #print "train"
-  #train('i2b2_examples/', 'kim/', ['i2b2_examples/parse'])
-  #print "predict"
-  #predict('i2b2_examples/', 'kim/', ['i2b2_examples/parse'])
-  #print "evaluate"
-  #evaluate('i2b2_examples/rel/', 'predictions/')
-  #print "train"
-  #train('i2b2_examples/', 'blrandom/')
-  #print "predict"
-  #predict('i2b2_examples/', 'blrandom/')
-  #print "evaluate"
-  #evaluate('i2b2_examples/concept',
-  #         'i2b2_examples/txt',
-  #         'i2b2_examples/rel/',
-  #         'predictions/')
-  #print "train"
-  #train('i2b2_examples/', 'kim/', ['suffix'])
-  #print "predict"
-  #predict('i2b2_examples/', 'kim/', ['suffix'])
-  #print "evaluate"
-  #evaluate('i2b2_examples/rel/', 'predictions/')
-  #print "train"
-  #train('../data/train/', 'kim/', ['../data/train/parse'])
-  #train('../data/train/', 'blrandom/', ['../data/train/parse'])
-  #print "predict"
-  #predict('../data/train/', 'blrandom/', ['../data/train/parse'])
-  #predict('../data/train/', 'kim/', ['../data/train/parse'])
-  #print "evaluate"
-  #evaluate('../data/train/concept',
-  #         '../data/train/txt',
-  #         '../data/train/rel', 'predictions/')
-  #print "predict"
-  #predict('../data/test/', 'kim/', ['../data/test/parse'])
-#  print "evaluate"
-#  evaluate('../data/test/concept',
-#           '../data/test/txt',
-#           '../data/test/rel', 'predictions/')

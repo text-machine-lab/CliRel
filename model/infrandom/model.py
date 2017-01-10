@@ -58,7 +58,7 @@ def predict(data, flags):
     X = note.createTesting(c, t)
     if type(X) == type(None) or X.empty:
       f_name = os.path.basename(t).split(".")[0]
-      with open(os.path.join(absPath('../predictions'),
+      with open(os.path.join(absPath('../../predictions'),
                                f_name + '.pred'), 'w') as f:
         continue
 
@@ -71,7 +71,7 @@ def predict(data, flags):
     f_name = set(X['fileName']).pop()
     X['relType'] = X.apply(filterUnlabeled,axis=1)
     X = X[X['relType'].notnull()]
-    with open(os.path.join(absPath('../predictions'),
+    with open(os.path.join(absPath('../../predictions'),
                              f_name + '.pred'), 'w') as f:
       def writeToFile(d):
         f.write(note.writeRel(d) + '\n')
