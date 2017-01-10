@@ -30,10 +30,6 @@ def absPath(path):
   """ Return absolute path from where this file is located """
   return os.path.join(os.path.dirname(os.path.abspath(__file__)), path)
 
-sys.path.append(absPath('../'))
-import note
-
-
 # Labels svm should train.
 _LABELS = ['TrIP','TrWP','TrCP',
            'TrAP','TrNAP','TeRP',
@@ -187,28 +183,29 @@ def spt(x):
 def entityFeature(x):
   """
     Returns a two-hot vector of the types of entities contained in the entry.
-    Note: Order is ignored. (T,P) == (P,T)
     Note: vector representation is of the form <index>:1, 0 for all else.
-    1 - test
-    2 - treatment
-    3 - problem
-    4 - second problem
+    1 - first test
+    2 - first treatment
+    3 - first problem
+    4 - second test
+    5 - second treatment
+    6 - second problem
     >>> entityFeature(test1)
-    '2:1 3:1'
+    '2:1 6:1'
     >>> entityFeature(test2)
-    '3:1 4:1'
+    '3:1 6:1'
     >>> entityFeature(test3)
-    '1:1 3:1'
+    '1:1 6:1'
     >>> entityFeature(test4)
-    '1:1 3:1'
+    '3:1 4:1'
     >>> entityFeature(test5)
     Traceback (most recent call last):
       ...
     ValueError: Invalid concept types given: treatment and test.
     >>> entityFeature(test6)
-    '2:1 3:1'
+    '3:1 5:1'
     >>> entityFeature(test7)
-    '1:1 3:1'
+    '3:1 4:1'
     >>> entityFeature(test9)
     Traceback (most recent call last):
       ...
@@ -217,12 +214,16 @@ def entityFeature(x):
   if V:
     print "Finding entity vector for: %s, line: %s" % (x.fileName, x.lineNum)
   cons = (x.conType1, x.conType2)
-  if cons == ('test', 'problem') or cons == ('problem', 'test'):
-    return '1:1 3:1'
-  if cons == ('treatment', 'problem') or cons == ('problem', 'treatment'):
-    return '2:1 3:1'
-  if cons == ('problem', 'problem'):
+  if cons == ('test', 'problem'):
+    return '1:1 6:1'
+  if cons == ('problem', 'test'):
     return '3:1 4:1'
+  if cons == ('treatment', 'problem'):
+    return '2:1 6:1'
+  if cons == ('problem', 'treatment'):
+    return '3:1 5:1'
+  if cons == ('problem', 'problem'):
+    return '3:1 6:1'
   raise ValueError('Invalid concept types given: %s and %s.' % (cons[0], cons[1]))
 
 
@@ -243,7 +244,7 @@ def train(data, flags):
     X['relType'] = X.apply(genNeg, axis=1, args=(X[X['relType'].notnull()],))
 
     # Split number of negative examples in half by taking only the ordered ones.
-    #X['relType'] = X.apply(filterNegLabeled, axis=1)
+    X['relType'] = X.apply(filterNegLabeled, axis=1)
 
     # Filter invalid entries (i.e. test/treatment combinations)
     X = X[X['relType'].notnull()]
@@ -438,3 +439,6 @@ if __name__ == '__main__':
 else:
  # V = False
   V = True
+
+  sys.path.append(absPath('../'))
+  import note

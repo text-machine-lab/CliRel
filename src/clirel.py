@@ -141,17 +141,16 @@ def evaluate(e_dir, p_dir):
   for p in pred.keys():
     if type(gold[p]) != str:
       gold[p] = 'N%s%s' % (p[-2][:2].upper(), p[-1][:2].upper())
-      FP += 1
 
   for g in gold.keys():
     if type(pred[g]) != str:
       if gold[g][0] != "N":
         p_labels.append('N%s%s' % (g[-2][:2].upper(), g[-1][:2].upper()))
         g_labels.append(gold[g])
-      FN += 1
+        FN += 1
+      else:
+        FP += 1
     else:
-# This ignores concept pairs that did not have a relation.
-# Meaning this metric won't take into account Falsely labeled pairs.
       if gold[g][0] != "N":
         p_labels.append(pred[g])
         g_labels.append(gold[g])
